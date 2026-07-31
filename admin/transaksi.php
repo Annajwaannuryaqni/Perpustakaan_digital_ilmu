@@ -110,7 +110,11 @@ $daftarTransaksi = $koneksi->query("
               <?php endif; ?>
             </td>
             <td data-label="Aksi">
-              <a href="hapus_transaksi.php?id=<?= $t['id_transaksi'] ?>" class="btn-link" style="color:var(--coral);" onclick="return confirm('Hapus data transaksi ini?')">Hapus</a>
+              <form method="POST" action="hapus_transaksi.php" class="no-print" style="display:inline;" onsubmit="return confirm('Hapus data transaksi ini?')">
+                <?= csrfField() ?>
+                <input type="hidden" name="id" value="<?= $t['id_transaksi'] ?>">
+                <button type="submit" class="btn-link" style="color:var(--coral); background:none; border:none; cursor:pointer; padding:0; font:inherit;">Hapus</button>
+              </form>
             </td>
           </tr>
           <?php endforeach; ?>

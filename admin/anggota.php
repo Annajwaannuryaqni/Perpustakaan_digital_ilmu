@@ -76,7 +76,11 @@ if ($keyword !== '') {
             </td>
             <td data-label="Aksi">
               <a href="edit_anggota.php?id=<?= $a['id_anggota'] ?>" class="btn-link">Edit</a> ·
-              <a href="hapus_anggota.php?id=<?= $a['id_anggota'] ?>" class="btn-link" style="color:var(--coral);" onclick="return confirm('Yakin hapus anggota ini?')">Hapus</a>
+              <form method="POST" action="hapus_anggota.php" style="display:inline;" onsubmit="return confirm('Yakin hapus anggota ini?')">
+                <?= csrfField() ?>
+                <input type="hidden" name="id" value="<?= $a['id_anggota'] ?>">
+                <button type="submit" class="btn-link" style="color:var(--coral); background:none; border:none; cursor:pointer; padding:0; font:inherit;">Hapus</button>
+              </form>
             </td>
           </tr>
           <?php endforeach; ?>

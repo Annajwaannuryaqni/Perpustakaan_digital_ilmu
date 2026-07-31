@@ -91,7 +91,11 @@ if ($keyword !== '') {
             </td>
             <td data-label="Aksi">
               <a href="edit_buku.php?id=<?= $b['id_buku'] ?>" class="btn-link">Edit</a> ·
-              <a href="hapus_buku.php?id=<?= $b['id_buku'] ?>" class="btn-link" style="color:var(--coral);" onclick="return confirm('Yakin hapus buku ini?')">Hapus</a>
+              <form method="POST" action="hapus_buku.php" style="display:inline;" onsubmit="return confirm('Yakin hapus buku ini?')">
+                <?= csrfField() ?>
+                <input type="hidden" name="id" value="<?= $b['id_buku'] ?>">
+                <button type="submit" class="btn-link" style="color:var(--coral); background:none; border:none; cursor:pointer; padding:0; font:inherit;">Hapus</button>
+              </form>
             </td>
           </tr>
           <?php endforeach; ?>
