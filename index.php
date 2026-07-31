@@ -30,6 +30,64 @@ foreach ($daftarBuku as $b) {
 }
 sort($kategoriList);
 
+// Rata-rata rating per buku (try-catch: aman kalau tabel "rating" belum dibuat)
+$ratingPerBuku = [];
+try {
+    foreach ($koneksi->query("SELECT id_buku, AVG(nilai) AS rata, COUNT(*) AS jumlah FROM rating GROUP BY id_buku") as $r) {
+        $ratingPerBuku[$r['id_buku']] = ['rata' => (float)$r['rata'], 'jumlah' => (int)$r['jumlah']];
+    }
+} catch (PDOException $e) { /* tabel rating belum ada, lewati */ }
+
+// Komentar per buku, terbaru dulu, sekalian ambil rating yang diberikan reviewer itu
+// (try-catch: aman kalau tabel "komentar"/"rating" belum dibuat)
+$komentarPerBuku = [];
+try {
+    $stmtKomentar = $koneksi->query("
+        SELECT k.id_buku, k.isi_komentar, k.created_at, a.nama_lengkap, r.nilai
+        FROM komentar k
+        JOIN anggota a ON a.id_anggota = k.id_anggota
+        LEFT JOIN rating r ON r.id_transaksi = k.id_transaksi
+        ORDER BY k.created_at DESC
+    ");
+    foreach ($stmtKomentar as $k) {
+        $komentarPerBuku[$k['id_buku']][] = $k;
+    }
+} catch (PDOException $e) { /* tabel komentar belum ada, lewati */ }
+
+/**
+ * ============================================================
+ *  RATING — SVG Star Icons (mendukung setengah bintang)
+ * ============================================================
+ */
+function starIconSvg($mode, $size) {
+    // $mode: 'full' | 'empty'
+    if ($mode === 'full') {
+        return '<svg width="'.$size.'" height="'.$size.'" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 2.7l2.9 6 6.5.9-4.7 4.6 1.1 6.5L12 17.6l-5.8 3.1 1.1-6.5-4.7-4.6 6.5-.9 2.9-6Z"/></svg>';
+    }
+    return '<svg width="'.$size.'" height="'.$size.'" viewBox="0 0 24 24" fill="none" stroke="#d5dce6" stroke-width="1.6"><path d="M12 2.7l2.9 6 6.5.9-4.7 4.6 1.1 6.5L12 17.6l-5.8 3.1 1.1-6.5-4.7-4.6 6.5-.9 2.9-6Z"/></svg>';
+}
+
+function starsSvg($rata, $size = 16) {
+    $rata = max(0, min(5, (float)$rata));
+    $html = '<span class="stars-row">';
+    for ($i = 1; $i <= 5; $i++) {
+        $diff = $rata - ($i - 1);
+        if ($diff >= 1) {
+            $html .= '<span class="star-slot" style="width:'.$size.'px;height:'.$size.'px;">'.starIconSvg('full', $size).'</span>';
+        } elseif ($diff <= 0) {
+            $html .= '<span class="star-slot" style="width:'.$size.'px;height:'.$size.'px;">'.starIconSvg('empty', $size).'</span>';
+        } else {
+            $pct = round($diff * 100);
+            $html .= '<span class="star-slot" style="width:'.$size.'px;height:'.$size.'px;">'
+                   . starIconSvg('empty', $size)
+                   . '<span class="star-fill" style="width:'.$pct.'%;">'.starIconSvg('full', $size).'</span>'
+                   . '</span>';
+        }
+    }
+    $html .= '</span>';
+    return $html;
+}
+
 /**
  * ============================================================
  *  UI HELPER — icon()
@@ -438,6 +496,11 @@ function icon($name, $class = 'w-5 h-5') {
                   <div class="p-4 flex flex-col gap-1.5">
                     <div class="font-bold text-xs md:text-sm text-navy-900 leading-snug line-clamp-2 group-hover:text-ocean-600 transition"><?= htmlspecialchars($b['judul']) ?></div>
                     <div class="text-xs text-slate-500 font-normal line-clamp-1"><?= htmlspecialchars($b['pengarang']) ?></div>
+                    <?php $rCard = $ratingPerBuku[$b['id_buku']] ?? null; ?>
+                    <div class="flex items-center gap-1.5">
+                      <?= starsSvg($rCard['rata'] ?? 0, 12) ?>
+                      <?php if ($rCard): ?><span class="text-[10px] text-slate-400 font-semibold"><?= number_format($rCard['rata'], 1) ?> (<?= $rCard['jumlah'] ?>)</span><?php endif; ?>
+                    </div>
                   </div>
                 </div>
 
@@ -567,7 +630,21 @@ function icon($name, $class = 'w-5 h-5') {
             </span>
 
             <h2 class="font-heading font-bold text-xl text-navy-900 leading-snug mb-1"><?= htmlspecialchars($b['judul']) ?></h2>
-            <div class="text-sm text-slate-500 font-medium mb-5">Penulis: <?= htmlspecialchars($b['pengarang']) ?></div>
+            <div class="text-sm text-slate-500 font-medium mb-2">Penulis: <?= htmlspecialchars($b['pengarang']) ?></div>
+
+            <?php $r = $ratingPerBuku[$b['id_buku']] ?? null; ?>
+            <div class="rating-summary-box mb-4">
+              <?php if ($r): ?>
+                <span class="rating-score"><?= number_format($r['rata'], 1) ?></span>
+                <span class="flex flex-col gap-0.5">
+                  <?= starsSvg($r['rata'], 15) ?>
+                  <span class="text-[10px] text-slate-400 font-semibold"><?= $r['jumlah'] ?> rating</span>
+                </span>
+              <?php else: ?>
+                <?= starsSvg(0, 15) ?>
+                <span class="text-xs text-slate-400 font-medium">Belum ada rating</span>
+              <?php endif; ?>
+            </div>
 
             <div class="grid grid-cols-2 gap-3 mb-6 text-xs bg-sky-50/50 p-4 rounded-2xl border border-sky-100">
               <div><span class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-0.5">Penerbit</span><span class="font-bold text-slate-700"><?= htmlspecialchars($b['penerbit'] ?? '-') ?></span></div>
@@ -582,6 +659,35 @@ function icon($name, $class = 'w-5 h-5') {
             <div class="text-xs leading-relaxed text-slate-600 mb-6">
               <span class="font-bold text-slate-700 block mb-1">Sinopsis:</span>
               <?= nl2br(htmlspecialchars($b['deskripsi'] ?: 'Belum ada deskripsi atau sinopsis untuk buku ini.')) ?>
+            </div>
+
+            <div class="text-xs mb-4">
+              <span class="font-bold text-slate-700 block mb-2">Ulasan Pembaca:</span>
+              <?php $komentarBuku = $komentarPerBuku[$b['id_buku']] ?? []; ?>
+              <?php if ($komentarBuku): ?>
+                <div class="komentar-list">
+                  <?php foreach ($komentarBuku as $k):
+                    $inisial = strtoupper(substr(trim($k['nama_lengkap']), 0, 1)) ?: '?';
+                    $tgl = date('d M Y', strtotime($k['created_at']));
+                  ?>
+                    <div class="komentar-item">
+                      <div class="komentar-avatar"><?= htmlspecialchars($inisial) ?></div>
+                      <div class="komentar-body">
+                        <div class="komentar-head">
+                          <span class="komentar-nama"><?= htmlspecialchars($k['nama_lengkap']) ?></span>
+                          <span class="komentar-tgl"><?= $tgl ?></span>
+                        </div>
+                        <?php if ($k['nilai']): ?>
+                          <div class="mb-1"><?= starsSvg($k['nilai'], 11) ?></div>
+                        <?php endif; ?>
+                        <div class="komentar-isi"><?= nl2br(htmlspecialchars($k['isi_komentar'])) ?></div>
+                      </div>
+                    </div>
+                  <?php endforeach; ?>
+                </div>
+              <?php else: ?>
+                <p class="komentar-kosong">Belum ada ulasan untuk buku ini.</p>
+              <?php endif; ?>
             </div>
 
             <?php if (!empty($b['kode_buku'])): ?>

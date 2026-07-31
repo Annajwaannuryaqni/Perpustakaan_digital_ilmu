@@ -18,16 +18,65 @@ $daftarTransaksi = $koneksi->query("
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Data Transaksi</title>
 <link rel="stylesheet" href="../assets/style.css">
+<style>
+  @media print {
+    .page-head a, .btn, .back-link, .no-print, th:last-child, td:last-child { display: none !important; }
+    body { background: #fff; }
+    .container { max-width: 100%; margin: 0; padding: 0; }
+    .card { box-shadow: none; border: none; padding: 0; }
+    .print-header { display: block !important; }
+
+    /* Paksa tabel tetap horizontal (lawan CSS responsive mode HP) */
+    table { display: table !important; width: 100% !important; border-collapse: collapse !important; }
+    table thead { display: table-header-group !important; }
+    table tbody { display: table-row-group !important; }
+    table tr {
+      display: table-row !important;
+      background: none !important;
+      border: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      page-break-inside: avoid;
+    }
+    table th, table td {
+      display: table-cell !important;
+      text-align: left !important;
+      border: 1px solid #cbd5e1 !important;
+      padding: 8px 10px !important;
+      font-size: 11px !important;
+    }
+    table td::before { content: none !important; }
+    table thead th {
+      background: #f1f5f9 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      font-size: 10.5px;
+      text-transform: uppercase;
+      color: #334155 !important;
+    }
+    .badge { border: 1px solid #cbd5e1; padding: 2px 8px; border-radius: 6px; background: none !important; color: #1e293b !important; }
+  }
+  .print-header { display: none; text-align: center; margin-bottom: 16px; }
+  .print-header h2 { margin: 0 0 4px; }
+  .print-header p { margin: 0; color: #64748b; font-size: 13px; }
+</style>
 </head>
 <body>
 
 
   <div class="container">
+    <div class="print-header">
+      <h2>Laporan Data Transaksi Peminjaman</h2>
+      <p>Perpustakaan Digital Sekolah — dicetak <?= date('d-m-Y H:i') ?> WIB</p>
+    </div>
+
     <div class="page-head">
       <div>
         <h1>🔄 Data Transaksi Peminjaman</h1>
         <p>Total <?= count($daftarTransaksi) ?> transaksi tercatat.</p>
       </div>
+      <button onclick="window.print()" class="btn no-print" type="button">🖨️ Cetak Laporan</button>
     </div>
 
     <div class="card">

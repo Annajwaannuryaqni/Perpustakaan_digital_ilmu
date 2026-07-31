@@ -37,6 +37,9 @@ if ($transaksi) {
 
     $stmt2 = $koneksi->prepare("UPDATE buku SET stok = stok + 1 WHERE id_buku = ?");
     $stmt2->execute([$transaksi['id_buku']]);
+
+    header('Location: kembali.php?pesan=sukses&rate=' . $id_transaksi);
+    exit;
 }
 
 header('Location: kembali.php?pesan=sukses');

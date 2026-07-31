@@ -574,6 +574,59 @@ textarea {
 /* =========================================================
    ALERT
    ========================================================= */
+.star-input { display: flex; gap: 6px; }
+.star-input .star-pick {
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--slate-300);
+  cursor: pointer;
+  user-select: none;
+  transition: color .15s ease, transform .15s ease;
+}
+.star-input .star-pick:hover,
+.star-input .star-pick:hover ~ .star-pick { color: #f59e0b; }
+.star-input .star-pick.active { color: #f59e0b; }
+.rating-card { border: 1px solid #fde68a; background: #fffbeb; }
+
+/* Baris bintang SVG (dipakai untuk card, modal, & tiap ulasan) */
+.stars-row { display: inline-flex; align-items: center; gap: 2px; vertical-align: middle; }
+.star-slot { position: relative; display: inline-block; }
+.star-slot svg { display: block; }
+.star-fill { position: absolute; top: 0; left: 0; height: 100%; overflow: hidden; }
+.star-fill svg { position: absolute; top: 0; left: 0; }
+
+/* Kotak ringkasan rating di modal detail buku */
+.rating-summary-box {
+  display: flex; align-items: center; gap: 12px;
+  background: linear-gradient(135deg, #fffbeb, #fff);
+  border: 1px solid #fde68a;
+  border-radius: 14px;
+  padding: 10px 16px;
+}
+.rating-summary-box .rating-score {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 800;
+  font-size: 1.6rem;
+  color: #92400e;
+  line-height: 1;
+}
+
+/* Kartu ulasan pembaca (avatar + isi) */
+.komentar-list { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; max-height: 240px; overflow-y: auto; padding-right: 2px; }
+.komentar-item { display: flex; gap: 10px; background: var(--slate-50); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; }
+.komentar-avatar {
+  flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--navy-900), var(--royal-500));
+  color: #fff; font-weight: 700; font-size: .75rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.komentar-body { flex: 1; min-width: 0; }
+.komentar-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.komentar-item .komentar-nama { font-weight: 700; font-size: .8rem; color: var(--navy); }
+.komentar-item .komentar-tgl { font-size: .68rem; color: var(--slate-400); white-space: nowrap; }
+.komentar-item .komentar-isi { font-size: .8rem; color: var(--slate-600); margin-top: 2px; line-height: 1.5; }
+.komentar-kosong { font-size: .8rem; color: var(--muted); font-style: italic; }
+
 .alert {
   padding: 14px 18px;
   border-radius: var(--radius-btn);
