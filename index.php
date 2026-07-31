@@ -30,6 +30,14 @@ foreach ($daftarBuku as $b) {
 }
 sort($kategoriList);
 
+// Data untuk Grafik Statistik Koleksi per Genre (landing page publik)
+$genreChartLabels = [];
+$genreChartData = [];
+foreach ($bukuPerGenre as $genre => $daftar) {
+    $genreChartLabels[] = $genre;
+    $genreChartData[] = count($daftar);
+}
+
 // Rata-rata rating per buku (try-catch: aman kalau tabel "rating" belum dibuat)
 $ratingPerBuku = [];
 try {
@@ -126,6 +134,7 @@ function icon($name, $class = 'w-5 h-5') {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script>
   tailwind.config = {
     theme: {
@@ -520,6 +529,34 @@ function icon($name, $class = 'w-5 h-5') {
     <?php endif; ?>
   </main>
 
+  <!-- ===== SECTION GRAFIK STATISTIK KOLEKSI (Publik) ===== -->
+  <section class="bg-white py-16 px-6 border-t border-sky-100">
+    <div class="max-w-5xl mx-auto reveal">
+      <div class="text-center mb-10">
+        <span class="text-xs font-bold uppercase tracking-wider text-ocean-600 bg-ocean-500/10 px-3.5 py-1.5 rounded-full mb-4 inline-block border border-ocean-500/20">Statistik</span>
+        <h2 class="font-heading font-bold text-2xl md:text-3xl text-navy-900 tracking-tight">Sebaran Koleksi Novel per Genre</h2>
+        <p class="text-slate-500 text-sm mt-3 max-w-xl mx-auto">Gambaran jumlah judul novel yang tersedia di perpustakaan, dikelompokkan berdasarkan genre.</p>
+      </div>
+
+      <div class="bg-white rounded-[2rem] border border-slate-200 shadow-card p-6 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center max-w-3xl mx-auto">
+        <div class="relative h-[280px]">
+          <canvas id="chartGenreLanding"></canvas>
+        </div>
+        <div class="flex flex-col gap-2.5" id="genreLegend">
+          <?php foreach ($bukuPerGenre as $genre => $daftar): ?>
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-600 bg-sky-50/50 px-3.5 py-2.5 rounded-xl border border-sky-100">
+              <span><?= htmlspecialchars($genre) ?></span>
+              <span class="text-ocean-600"><?= count($daftar) ?> judul</span>
+            </div>
+          <?php endforeach; ?>
+          <?php if (!$bukuPerGenre): ?>
+            <p class="text-xs text-slate-400 italic">Belum ada data koleksi buku.</p>
+          <?php endif; ?>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ===== TENTANG SECTION ===== -->
   <section id="tentang" class="bg-navy-900 text-white py-16 px-6 relative overflow-hidden mt-12 scroll-mt-20">
     <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-navy-800 via-navy-900 to-navy-950 pointer-events-none"></div>
@@ -712,6 +749,46 @@ function icon($name, $class = 'w-5 h-5') {
 
   <!-- JavaScript Pendukung -->
   <script>
+    /* ===== Grafik Statistik Koleksi per Genre ===== */
+    const genreLabels = <?= json_encode($genreChartLabels) ?>;
+    const genreData = <?= json_encode($genreChartData) ?>;
+    const genreCanvas = document.getElementById('chartGenreLanding');
+
+    if (genreCanvas && genreLabels.length) {
+      const oceanPalette = ['#0EA5E9', '#2563EB', '#38BDF8', '#0B1F3A', '#60A5FA', '#0284C7', '#93C5FD', '#1D3F72'];
+      new Chart(genreCanvas, {
+        type: 'doughnut',
+        data: {
+          labels: genreLabels,
+          datasets: [{
+            data: genreData,
+            backgroundColor: genreLabels.map((_, i) => oceanPalette[i % oceanPalette.length]),
+            borderColor: '#ffffff',
+            borderWidth: 3,
+            hoverOffset: 6,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '62%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0B1F3A',
+              titleFont: { family: 'Poppins', size: 13 },
+              bodyFont: { family: 'Inter', size: 12 },
+              padding: 10,
+              cornerRadius: 8,
+              callbacks: {
+                label: (ctx) => ` ${ctx.label}: ${ctx.raw} judul`
+              }
+            }
+          }
+        }
+      });
+    }
+
     /* ===== Sidebar ===== */
     const sidebarEl = document.getElementById('sidebar');
     const sidebarOverlayEl = document.getElementById('sidebarOverlay');

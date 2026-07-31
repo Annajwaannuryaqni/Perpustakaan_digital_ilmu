@@ -59,6 +59,8 @@ function formatLabelBulan($raw) {
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
 <!-- Lucide Icons -->
 <script src="https://unpkg.com/lucide@latest"></script>
+<!-- Chart.js (dipakai untuk grafik tren peminjaman & kunjungan) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <link rel="stylesheet" href="../assets/style.css">
 <style>
   :root {
