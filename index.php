@@ -627,9 +627,9 @@ function icon($name, $class = 'w-5 h-5') {
       <div>
         <div class="font-heading font-bold text-white text-sm mb-4 tracking-wide uppercase">Informasi</div>
         <ul class="space-y-3 text-slate-400">
-          <li class="flex items-start gap-2.5 leading-relaxed"><?= icon('pin','w-4 h-4 mt-0.5 text-ocean-400 shrink-0') ?> Jl. Pendidikan No. 1, Sekolah, Bantul, Yogyakarta</li>
-          <li class="flex items-center gap-2.5"><?= icon('mail','w-4 h-4 text-ocean-400 shrink-0') ?> info@perpusdigital.sch.id</li>
-          <li class="flex items-center gap-2.5"><?= icon('phone','w-4 h-4 text-ocean-400 shrink-0') ?> (0274) 123456</li>
+          <li class="flex items-start gap-2.5 leading-relaxed"><?= icon('pin','w-4 h-4 mt-0.5 text-ocean-400 shrink-0') ?> Jl. Samas Km. 11 (Kreteg Abang) Ngemplak, Srigading, Sanden, Bantul, Yogyakarta</li>
+          <li class="flex items-center gap-2.5"><?= icon('mail','w-4 h-4 text-ocean-400 shrink-0') ?> sekolah@smkn1sanden.sch.id</li>
+          <li class="flex items-center gap-2.5"><?= icon('phone','w-4 h-4 text-ocean-400 shrink-0') ?> 0274 281-2187</li>
         </ul>
       </div>
 
