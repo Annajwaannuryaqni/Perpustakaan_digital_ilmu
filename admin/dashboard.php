@@ -62,6 +62,9 @@ function formatLabelBulan($raw) {
 <!-- Chart.js (dipakai untuk grafik tren peminjaman & kunjungan) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/css/notification.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
   :root {
     --navy: #1e293b;
@@ -417,8 +420,11 @@ function formatLabelBulan($raw) {
         <h1>📊 Dashboard Admin</h1>
         <p>Halo, <b><?= htmlspecialchars($_SESSION['admin_nama']) ?></b> &mdash; berikut ringkasan sistem perpustakaan hari ini.</p>
       </div>
-      <div class="header-meta">
-        📅 <span id="current-date">Senin, 27 Jul 2026</span>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <?php require_once '../includes/navbar_notification.php'; ?>
+        <div class="header-meta">
+          📅 <span id="current-date">Senin, 27 Jul 2026</span>
+        </div>
       </div>
     </div>
 
@@ -613,5 +619,26 @@ function formatLabelBulan($raw) {
       }
     });
   </script>
+
+  <script src="../assets/js/notification.js"></script>
+
+  <?php if (isset($_SESSION['flash_notif'])):
+      $flash = $_SESSION['flash_notif'];
+      unset($_SESSION['flash_notif']);
+  ?>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if (window.showToast) {
+        showToast(
+          <?= json_encode($flash['title']) ?>,
+          <?= json_encode($flash['message']) ?>,
+          <?= json_encode($flash['type']) ?>,
+          <?= json_encode($flash['icon']) ?>,
+          <?= json_encode($flash['color']) ?>
+        );
+      }
+    });
+  </script>
+  <?php endif; ?>
 </body>
 </html>

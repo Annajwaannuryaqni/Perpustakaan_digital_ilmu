@@ -28,10 +28,14 @@ $riwayat = $riwayat->fetchAll();
 <meta charset="UTF-8">
 <title>Dashboard Siswa</title>
 <link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/css/notification.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-  <div class="topbar">
+  <div class="topbar" style="display:flex; align-items:center; justify-content:space-between;">
     <h1> Dashboard Siswa</h1>
+    <?php require_once '../includes/navbar_notification.php'; ?>
   </div>
 
   <div class="container">
@@ -84,5 +88,26 @@ $riwayat = $riwayat->fetchAll();
       <a href="logout.php" class="btn btn-danger" style="text-decoration:none;"> Logout</a>
     </div>
   </div>
+
+  <script src="../assets/js/notification.js"></script>
+
+  <?php if (isset($_SESSION['flash_notif'])):
+      $flash = $_SESSION['flash_notif'];
+      unset($_SESSION['flash_notif']);
+  ?>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if (window.showToast) {
+        showToast(
+          <?= json_encode($flash['title']) ?>,
+          <?= json_encode($flash['message']) ?>,
+          <?= json_encode($flash['type']) ?>,
+          <?= json_encode($flash['icon']) ?>,
+          <?= json_encode($flash['color']) ?>
+        );
+      }
+    });
+  </script>
+  <?php endif; ?>
 </body>
 </html>

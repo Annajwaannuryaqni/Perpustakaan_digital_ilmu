@@ -42,6 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="UTF-8">
 <title>Daftar Anggota</title>
 <link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/css/notification.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
   <div class="login-wrap">
@@ -90,5 +92,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
     </div>
   </div>
+
+  <!-- Toast Container (mini, berdiri sendiri, tidak butuh notification.js penuh) -->
+  <div id="toast-container"></div>
+  <?php if ($sukses): ?>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast-modern';
+      toast.innerHTML = `
+        <div class="toast-icon" style="color:#22c55e;"><i class="fas fa-circle-check"></i></div>
+        <div class="toast-body">
+          <div class="toast-title">Registrasi Berhasil</div>
+          <div class="toast-message">Selamat, silakan login terlebih dahulu.</div>
+        </div>
+        <button class="toast-close">&times;</button>
+        <div class="toast-progress" style="background:#22c55e;"></div>
+      `;
+      container.appendChild(toast);
+      toast.querySelector('.toast-close').addEventListener('click', () => toast.remove());
+      setTimeout(() => toast.remove(), 5000);
+    });
+  </script>
+  <?php endif; ?>
 </body>
 </html>

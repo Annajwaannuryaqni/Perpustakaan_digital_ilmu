@@ -15,6 +15,22 @@ document.addEventListener('DOMContentLoaded', function () {
     let soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
     updateSoundIcon();
 
+    // 0. Unlock audio setelah interaksi pertama user (browser blokir autoplay
+    //    kalau belum ada klik/tap sama sekali di halaman ini).
+    let audioUnlocked = false;
+    function unlockAudio() {
+        if (audioUnlocked || !notificationSound) return;
+        notificationSound.play().then(() => {
+            notificationSound.pause();
+            notificationSound.currentTime = 0;
+            audioUnlocked = true;
+        }).catch(() => {
+            // Masih diblokir, coba lagi di interaksi berikutnya.
+        });
+    }
+    document.addEventListener('click', unlockAudio, { once: false });
+    document.addEventListener('keydown', unlockAudio, { once: false });
+
     // 1. Minta Izin Browser Notification API
     if (window.Notification && Notification.permission !== "granted") {
         Notification.requestPermission();

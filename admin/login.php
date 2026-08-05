@@ -14,6 +14,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($admin && password_verify($password, $admin['password'])) {
         $_SESSION['admin_id'] = $admin['id_admin'];
         $_SESSION['admin_nama'] = $admin['nama_lengkap'];
+        $_SESSION['flash_notif'] = [
+            'title'   => 'Login Berhasil',
+            'message' => 'Selamat, Anda berhasil login sebagai Admin.',
+            'type'    => 'success',
+            'icon'    => 'fa-circle-check',
+            'color'   => '#22c55e',
+        ];
         header('Location: dashboard.php');
         exit;
     } else {

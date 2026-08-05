@@ -17,6 +17,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $_SESSION['anggota_id'] = $anggota['id_anggota'];
             $_SESSION['anggota_nama'] = $anggota['nama_lengkap'];
+            $_SESSION['flash_notif'] = [
+                'title'   => 'Login Berhasil',
+                'message' => 'Selamat, Anda berhasil login. Selamat membaca!',
+                'type'    => 'success',
+                'icon'    => 'fa-circle-check',
+                'color'   => '#22c55e',
+            ];
             header('Location: dashboard.php');
             exit;
         }
