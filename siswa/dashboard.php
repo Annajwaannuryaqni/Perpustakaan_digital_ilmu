@@ -90,24 +90,24 @@ $riwayat = $riwayat->fetchAll();
   </div>
 
   <script src="../assets/js/notification.js"></script>
-
-  <?php if (isset($_SESSION['flash_notif'])):
-      $flash = $_SESSION['flash_notif'];
-      unset($_SESSION['flash_notif']);
-  ?>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      if (window.showToast) {
+  <?php
+if (isset($_SESSION['flash_notif'])):
+    $flash = $_SESSION['flash_notif'];
+    unset($_SESSION['flash_notif']);
+?>
+<script>
+window.addEventListener("load", function () {
+    if (typeof showToast === "function") {
         showToast(
-          <?= json_encode($flash['title']) ?>,
-          <?= json_encode($flash['message']) ?>,
-          <?= json_encode($flash['type']) ?>,
-          <?= json_encode($flash['icon']) ?>,
-          <?= json_encode($flash['color']) ?>
+            <?= json_encode($flash['title']) ?>,
+            <?= json_encode($flash['message']) ?>,
+            <?= json_encode($flash['type']) ?>,
+            <?= json_encode($flash['icon']) ?>,
+            <?= json_encode($flash['color']) ?>
         );
-      }
-    });
-  </script>
-  <?php endif; ?>
+    }
+});
+</script>
+<?php endif; ?>
 </body>
 </html>
