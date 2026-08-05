@@ -73,10 +73,10 @@ $daftarTransaksi = $koneksi->query("
 
     <div class="page-head">
       <div>
-        <h1>🔄 Data Transaksi Peminjaman</h1>
+        <h1> Data Transaksi Peminjaman</h1>
         <p>Total <?= count($daftarTransaksi) ?> transaksi tercatat.</p>
       </div>
-      <button onclick="window.print()" class="btn no-print" type="button">🖨️ Cetak Laporan</button>
+      <button onclick="window.print()" class="btn no-print" type="button"> Cetak Laporan</button>
     </div>
 
     <div class="card">
