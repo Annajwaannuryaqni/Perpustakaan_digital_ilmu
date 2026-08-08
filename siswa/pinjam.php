@@ -124,7 +124,7 @@ foreach ($daftarBuku as $b) {
 </head>
 <body>
   <div class="topbar">
-    <h1>📖 Peminjaman Buku</h1>
+    <h1>Katalog &amp; Peminjaman Buku</h1>
   </div>
 
   <div class="container">
@@ -173,10 +173,7 @@ foreach ($daftarBuku as $b) {
                     <div class="pengarang"><?= htmlspecialchars($b['pengarang']) ?></div>
                     <div class="baris-bawah">
                       <span class="badge badge-ok"><?= (int)$b['stok'] ?> stok</span>
-                      <form method="POST" action="proses_pinjam.php" onsubmit="return confirm('Pinjam buku ini?')" onclick="event.stopPropagation()">
-                        <input type="hidden" name="id_buku" value="<?= $b['id_buku'] ?>">
-                        <button type="submit" class="btn">Pinjam</button>
-                      </form>
+                      <a href="pinjam_konfirmasi.php?id=<?= $b['id_buku'] ?>" class="btn" onclick="event.stopPropagation()">Pinjam</a>
                     </div>
                   </div>
                 </div>
@@ -220,10 +217,11 @@ foreach ($daftarBuku as $b) {
           <div class="deskripsi"><?= nl2br(htmlspecialchars($b['deskripsi'] ?? '-')) ?></div>
 
           <div class="modal-footer">
-            <form method="POST" action="proses_pinjam.php" onsubmit="return confirm('Pinjam buku ini?')">
-              <input type="hidden" name="id_buku" value="<?= $b['id_buku'] ?>">
-              <button type="submit" class="btn">Pinjam Buku Ini</button>
-            </form>
+            <?php if ((int)$b['stok'] > 0): ?>
+              <a href="pinjam_konfirmasi.php?id=<?= $b['id_buku'] ?>" class="btn">Pinjam Buku Ini</a>
+            <?php else: ?>
+              <span class="badge badge-habis">Tidak Tersedia</span>
+            <?php endif; ?>
           </div>
         </div>
       </div>
