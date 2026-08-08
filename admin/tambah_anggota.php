@@ -6,6 +6,8 @@ require_once '../config/database.php';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
+
     $nis          = trim($_POST['nis']);
     $nama_lengkap = trim($_POST['nama_lengkap']);
     $kelas        = trim($_POST['kelas']);
@@ -58,6 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
 
       <form method="POST">
+        <?= csrfField() ?>
+
         <label>NIS</label>
         <input type="text" name="nis" required>
 

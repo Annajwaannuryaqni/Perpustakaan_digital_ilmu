@@ -4,6 +4,8 @@ requireSiswa();
 require_once '../config/database.php';
 
 $id_anggota    = $_SESSION['anggota_id'];
+requireCsrf();
+
 $id_transaksi  = $_POST['id_transaksi'] ?? null;
 $nilai         = $_POST['nilai'] ?? null;
 $isi_komentar  = trim($_POST['isi_komentar'] ?? '');

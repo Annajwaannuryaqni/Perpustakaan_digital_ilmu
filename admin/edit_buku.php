@@ -17,6 +17,8 @@ $buku = $stmt->fetch();
 if (!$buku) { header('Location: buku.php'); exit; }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
+
     $kode_buku    = trim($_POST['kode_buku']);
     $judul        = trim($_POST['judul']);
     $pengarang    = trim($_POST['pengarang']);
@@ -97,6 +99,8 @@ $kategoriList = $koneksi->query("SELECT * FROM kategori ORDER BY nama_kategori")
       <?php endif; ?>
 
       <form method="POST" enctype="multipart/form-data">
+        <?= csrfField() ?>
+
         <label>Kode Buku</label>
         <input type="text" name="kode_buku" value="<?= htmlspecialchars($buku['kode_buku']) ?>" required>
 

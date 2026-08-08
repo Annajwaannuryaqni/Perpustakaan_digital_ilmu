@@ -1,11 +1,12 @@
 <?php
-session_start();
+require_once '../includes/auth.php';
 require_once '../config/database.php';
 
 $error = '';
 $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
 
     $nis            = trim($_POST['nis'] ?? '');
     $nama_lengkap   = trim($_POST['nama_lengkap'] ?? '');
@@ -120,6 +121,8 @@ style="max-width:450px;">
 <?php endif; ?>
 
 <form method="POST">
+
+<?= csrfField() ?>
 
 <label>NIS</label>
 

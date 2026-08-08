@@ -16,6 +16,8 @@ $sudahPresensi = $cek->fetch();
 
 // Kalau tombol presensi ditekan dan belum presensi hari ini -> simpan
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$sudahPresensi) {
+    requireCsrf();
+
     $stmt = $koneksi->prepare("INSERT INTO kunjungan (id_anggota) VALUES (?)");
     $stmt->execute([$id_anggota]);
     $sudahPresensi = true;
@@ -56,6 +58,7 @@ $riwayat = $riwayat->fetchAll();
       <?php else: ?>
         <p style="color:var(--text-muted);">Datang untuk membaca di tempat tanpa meminjam buku? Presensi dulu di sini.</p>
         <form method="POST">
+          <?= csrfField() ?>
           <button type="submit" class="btn"> Presensi Sekarang</button>
         </form>
       <?php endif; ?>

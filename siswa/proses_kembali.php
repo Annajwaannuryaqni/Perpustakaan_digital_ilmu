@@ -6,6 +6,8 @@ require_once '../config/database.php';
 const TARIF_DENDA_PER_HARI = 1000; // Rp1.000 / hari keterlambatan
 
 $id_anggota = $_SESSION['anggota_id'];
+requireCsrf();
+
 $id_transaksi = $_POST['id_transaksi'] ?? null;
 
 if (!$id_transaksi) {

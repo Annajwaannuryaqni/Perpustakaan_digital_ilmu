@@ -1,10 +1,11 @@
 <?php
-session_start();
+require_once '../includes/auth.php';
 require_once '../config/database.php';
 
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
 
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
@@ -91,6 +92,7 @@ content="width=device-width, initial-scale=1.0">
 </p>
 <?php endif; ?>
 <form method="POST">
+<?= csrfField() ?>
 <label>Username</label>
 <input
 type="text"
