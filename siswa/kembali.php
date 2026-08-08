@@ -63,13 +63,19 @@ if ($id_rate) {
         <form method="POST" action="proses_rating.php">
           <input type="hidden" name="id_transaksi" value="<?= $bukuUntukRating['id_transaksi'] ?>">
 
-          <div class="star-input" id="starInput">
-            <?php for ($i = 1; $i <= 5; $i++): ?>
-              <label>
-                <input type="radio" name="nilai" value="<?= $i ?>" <?= $i === 5 ? 'required' : '' ?> style="display:none;">
-                <span class="star-pick" data-val="<?= $i ?>">★</span>
-              </label>
-            <?php endfor; ?>
+          <?= csrfField() ?>
+
+          <div class="rating-section">
+            <div class="rating-title">Berikan Rating</div>
+            <div class="rating-stars" id="starInput" role="radiogroup" aria-label="Pilih rating buku">
+              <?php for ($i = 1; $i <= 5; $i++): ?>
+                <label class="rating-star" data-value="<?= $i ?>" title="<?= $i ?> dari 5">
+                  <input type="radio" name="nilai" value="<?= $i ?>" <?= $i === 5 ? 'required' : '' ?>>
+                  <span aria-hidden="true">★</span>
+                </label>
+              <?php endfor; ?>
+            </div>
+            <div class="rating-value-text" id="ratingValueText">Pilih rating 1–5</div>
           </div>
 
           <textarea name="isi_komentar" rows="3" placeholder="Tulis komentar/ulasan singkat tentang buku ini (opsional)..." style="width:100%; margin-top:12px;"></textarea>
@@ -82,16 +88,35 @@ if ($id_rate) {
       </div>
       <script>
         (function(){
-          var stars = document.querySelectorAll('#starInput .star-pick');
+          var labels = {1:'Sangat Buruk',2:'Buruk',3:'Cukup',4:'Bagus',5:'Sangat Bagus'};
+          var stars = document.querySelectorAll('#starInput .rating-star');
+          var text = document.getElementById('ratingValueText');
+          function paint(value, preview) {
+            stars.forEach(function(star){
+              var n = Number(star.getAttribute('data-value'));
+              star.classList.toggle('active', n <= value);
+              star.classList.toggle('preview', !!preview && n <= value);
+            });
+            text.textContent = value ? (value + ' dari 5 — ' + labels[value]) : 'Pilih rating 1–5';
+          }
           stars.forEach(function(star){
+            star.addEventListener('mouseenter', function(){ paint(Number(star.dataset.value), true); });
+            star.addEventListener('focusin', function(){ paint(Number(star.dataset.value), true); });
             star.addEventListener('click', function(){
-              var val = star.getAttribute('data-val');
-              document.querySelector('#starInput input[value="'+val+'"]').checked = true;
-              stars.forEach(function(s){
-                s.classList.toggle('active', s.getAttribute('data-val') <= val);
-              });
+              var input = star.querySelector('input');
+              input.checked = true;
+              paint(Number(input.value), false);
             });
           });
+          document.getElementById('starInput').addEventListener('mouseleave', function(){
+            var checked = document.querySelector('#starInput input:checked');
+            paint(checked ? Number(checked.value) : 0, false);
+          });
+          document.getElementById('starInput').addEventListener('focusout', function(){
+            var checked = document.querySelector('#starInput input:checked');
+            paint(checked ? Number(checked.value) : 0, false);
+          });
+          paint(0, false);
         })();
       </script>
     <?php endif; ?>

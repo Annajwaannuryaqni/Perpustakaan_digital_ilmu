@@ -115,13 +115,10 @@ function dashIcon($name, $class = 'ic') {
 
   .quick-menu-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
     margin-top: 8px;
   }
-  .menu-card-item .ic { width: 26px; height: 26px; color: #2563eb; }
-  .menu-card-item.danger .ic { color: #dc2626; }
-  .menu-card-item.danger span { color: #dc2626; }
 
   .status-pill {
     display: inline-flex; align-items: center; padding: 5px 12px;
@@ -133,8 +130,11 @@ function dashIcon($name, $class = 'ic') {
 
   .empty-row { text-align: center; color: #64748b; padding: 28px !important; font-size: .85rem; }
 
-  @media (max-width: 768px) {
-    .quick-menu-grid { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 1100px) {
+    .quick-menu-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 600px) {
+    .quick-menu-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -310,15 +310,48 @@ function dashIcon($name, $class = 'ic') {
       </div>
     </div>
 
-    <!-- Navigasi Menu Akses Cepat -->
-    <div class="glass-card" style="padding:24px 28px;">
-      <h3 class="section-title">Akses Cepat</h3>
+    <!-- Tindakan Cepat -->
+    <div class="glass-card quick-actions-card">
+      <div class="quick-actions-head">
+        <h3 class="section-title"><?= dashIcon('stack') ?> <span>Tindakan Cepat</span></h3>
+      </div>
+
       <div class="quick-menu-grid">
-        <a href="buku.php" class="menu-card-item"><?= dashIcon('book') ?><span>Data Buku</span></a>
-        <a href="anggota.php" class="menu-card-item"><?= dashIcon('users') ?><span>Data Anggota</span></a>
-        <a href="transaksi.php" class="menu-card-item"><?= dashIcon('repeat') ?><span>Transaksi</span></a>
-        <a href="kunjungan.php" class="menu-card-item"><?= dashIcon('calendar') ?><span>Kunjungan</span></a>
-        <a href="logout.php" class="menu-card-item danger"><?= dashIcon('logout') ?><span>Logout</span></a>
+        <a href="buku.php" class="menu-card-item">
+          <span class="quick-action-icon"><?= dashIcon('book') ?></span>
+          <span class="quick-action-content">
+            <strong>Kelola Data Buku</strong>
+            <small>Tambah atau perbarui data buku</small>
+          </span>
+          <span class="quick-action-arrow" aria-hidden="true">&rarr;</span>
+        </a>
+
+        <a href="anggota.php" class="menu-card-item">
+          <span class="quick-action-icon"><?= dashIcon('users') ?></span>
+          <span class="quick-action-content">
+            <strong>Kelola Anggota</strong>
+            <small>Daftarkan dan perbarui anggota</small>
+          </span>
+          <span class="quick-action-arrow" aria-hidden="true">&rarr;</span>
+        </a>
+
+        <a href="transaksi.php" class="menu-card-item">
+          <span class="quick-action-icon"><?= dashIcon('repeat') ?></span>
+          <span class="quick-action-content">
+            <strong>Data Transaksi Peminjaman</strong>
+            <small>Kelola peminjaman dan pengembalian</small>
+          </span>
+          <span class="quick-action-arrow" aria-hidden="true">&rarr;</span>
+        </a>
+
+        <a href="kunjungan.php" class="menu-card-item">
+          <span class="quick-action-icon"><?= dashIcon('calendar') ?></span>
+          <span class="quick-action-content">
+            <strong>Daftar Kunjungan</strong>
+            <small>Kelola data kunjungan perpustakaan</small>
+          </span>
+          <span class="quick-action-arrow" aria-hidden="true">&rarr;</span>
+        </a>
       </div>
     </div>
   </div>

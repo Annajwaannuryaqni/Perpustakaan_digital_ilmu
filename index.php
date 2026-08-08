@@ -2,8 +2,53 @@
 session_start();
 require_once 'config/database.php';
 
+if (empty($_SESSION['rating_csrf'])) {
+    $_SESSION['rating_csrf'] = bin2hex(random_bytes(32));
+}
+$ratingCsrf = $_SESSION['rating_csrf'];
+
+$idAnggotaLogin = isset($_SESSION['anggota_id']) ? (int)$_SESSION['anggota_id'] : null;
+$transaksiRatingPerBuku = [];
+$ratingSayaPerBuku = [];
+
+if ($idAnggotaLogin) {
+    try {
+        // Ambil transaksi terakhir anggota untuk setiap buku yang pernah dipinjam.
+        $stmtTR = $koneksi->prepare("
+            SELECT t.id_buku, t.id_transaksi
+            FROM transaksi t
+            INNER JOIN (
+                SELECT id_buku, MAX(id_transaksi) AS max_id
+                FROM transaksi
+                WHERE id_anggota = ?
+                GROUP BY id_buku
+            ) x ON x.max_id = t.id_transaksi
+            WHERE t.id_anggota = ?
+        ");
+        $stmtTR->execute([$idAnggotaLogin, $idAnggotaLogin]);
+
+        foreach ($stmtTR->fetchAll() as $tr) {
+            $transaksiRatingPerBuku[(int)$tr['id_buku']] = (int)$tr['id_transaksi'];
+        }
+
+        // Ambil rating yang sudah diberikan anggota pada transaksi tersebut.
+        if ($transaksiRatingPerBuku) {
+            $stmtRS = $koneksi->prepare("
+                SELECT id_transaksi, nilai
+                FROM rating
+                WHERE id_transaksi IN (" . implode(',', array_fill(0, count($transaksiRatingPerBuku), '?')) . ")
+            ");
+            $stmtRS->execute(array_values($transaksiRatingPerBuku));
+            foreach ($stmtRS->fetchAll() as $rr) {
+                $ratingSayaPerBuku[(int)$rr['id_transaksi']] = (int)$rr['nilai'];
+            }
+        }
+    } catch (PDOException $e) {
+        // Bila tabel rating belum tersedia, form rating tetap aman dan tidak merusak halaman.
+    }
+}
+
 if (isset($_SESSION['admin_id'])) { header('Location: admin/dashboard.php'); exit; }
-if (isset($_SESSION['anggota_id'])) { header('Location: siswa/dashboard.php'); exit; }
 
 // Ambil SEMUA buku dengan stok > 0, dikelompokkan per genre
 $daftarBuku = $koneksi->query("
@@ -113,6 +158,7 @@ function icon($name, $class = 'w-5 h-5') {
         'book'         => '<path d="M4 5.5c2.2-1 5-1 7 .3v13.7c-2-1.3-4.8-1.3-7-.3V5.5Z"/><path d="M20 5.5c-2.2-1-5-1-7 .3v13.7c2-1.3 4.8-1.3 7-.3V5.5Z"/>',
         'tag'          => '<rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1.5"/><rect x="14" y="3.5" width="6.5" height="6.5" rx="1.5"/><rect x="3.5" y="14" width="6.5" height="6.5" rx="1.5"/><rect x="14" y="14" width="6.5" height="6.5" rx="1.5"/>',
         'info'         => '<circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.7" r="0.9" fill="currentColor" stroke="none"/>',
+        'help'         => '<circle cx="12" cy="12" r="9"/><path d="M9.7 9.2a2.45 2.45 0 1 1 4.35 1.55c-.82.82-1.9 1.2-1.9 2.55"/><circle cx="12" cy="16.5" r=".8" fill="currentColor" stroke="none"/>',
         'mail'         => '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m4 7 8 6 8-6"/>',
         'phone'        => '<path d="M6.5 3.5h3l1.5 4-2 1.5a12 12 0 0 0 5.5 5.5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A17 17 0 0 1 4.5 5.7 2 2 0 0 1 6.5 3.5Z"/>',
         'pin'          => '<path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z"/><circle cx="12" cy="9" r="2.4"/>',
@@ -130,7 +176,7 @@ function icon($name, $class = 'w-5 h-5') {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Perpustakaan Digital Sekolah — Luxury Ocean Theme</title>
+<title>Perpustakaan Digital Sekolah — Perpustakaan Digital Ilmu</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
@@ -233,6 +279,145 @@ function icon($name, $class = 'w-5 h-5') {
 
   .cat-pill { transition: all .25s cubic-bezier(0.16, 1, 0.3, 1); }
   .cat-pill:hover { transform: translateY(-1px); }
+
+  /* ===== RATING DISPLAY - ALWAYS HORIZONTAL ===== */
+  .stars-row {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-wrap: nowrap !important;
+    gap: 2px !important;
+    width: max-content !important;
+    height: auto !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+  }
+  .stars-row .star-slot {
+    display: inline-flex !important;
+    position: relative !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: auto;
+    height: auto;
+    line-height: 0 !important;
+  }
+  .stars-row .star-slot > svg {
+    display: block !important;
+    flex: 0 0 auto !important;
+  }
+  .stars-row .star-fill {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    overflow: hidden !important;
+    display: block !important;
+    pointer-events: none !important;
+  }
+  .stars-row .star-fill > svg {
+    display: block !important;
+    max-width: none !important;
+  }
+
+  /* ===== Interactive Rating ===== */
+  .rating-input-card {
+    background: linear-gradient(135deg, #fffdf5, #ffffff);
+    border: 1px solid #fde7a8;
+    border-radius: 18px;
+    padding: 16px;
+  }
+  .rating-selected-badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #fff7d6;
+    color: #92400e;
+    font-size: 10px;
+    font-weight: 800;
+  }
+  .star-input-horizontal {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 4px;
+    min-height: 48px;
+  }
+  .rating-star-btn {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    padding: 2px;
+    margin: 0;
+    font-size: 34px;
+    line-height: 1;
+    color: #d5dce6;
+    cursor: pointer;
+    transition: color .15s ease, transform .15s ease, filter .15s ease;
+  }
+  .rating-star-btn:hover,
+  .rating-star-btn.preview,
+  .rating-star-btn.selected {
+    color: #f59e0b;
+    filter: drop-shadow(0 3px 5px rgba(245,158,11,.18));
+  }
+  .rating-star-btn:hover,
+  .rating-star-btn.preview {
+    transform: translateY(-2px) scale(1.04);
+  }
+  .rating-help-text {
+    min-height: 18px;
+    margin-top: 2px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .rating-submit-btn {
+    margin-top: 10px;
+    width: 100%;
+    border: 0;
+    border-radius: 12px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #0284c7, #2563eb);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(37,99,235,.16);
+    transition: transform .18s ease, opacity .18s ease, box-shadow .18s ease;
+  }
+  .rating-submit-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(37,99,235,.22); }
+  .rating-submit-btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+  .rating-message {
+    min-height: 18px;
+    margin: 7px 0 0;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .rating-message.success { color: #15803d; }
+  .rating-message.error { color: #dc2626; }
+  .rating-login-note {
+    display: block;
+    padding: 11px 12px;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    font-size: 11px;
+    line-height: 1.55;
+  }
+  .rating-login-link {
+    text-decoration: none;
+    color: #2563eb;
+    font-weight: 700;
+  }
+  @media (max-width: 480px) {
+    .star-input-horizontal { justify-content: center; gap: 1px; }
+    .rating-star-btn { font-size: 31px; }
+  }
 </style>
 </head>
 <body class="antialiased ocean-bg-pattern selection:bg-ocean-500 selection:text-white">
@@ -250,7 +435,7 @@ function icon($name, $class = 'w-5 h-5') {
                onerror="this.style.display='none'; document.getElementById('logoFallbackSide').style.display='flex';">
           <div id="logoFallbackSide" class="hidden w-full h-full rounded-xl bg-gradient-to-tr from-navy-900 to-ocean-500 items-center justify-center text-white font-bold text-base shadow-md shadow-ocean-500/20 font-heading">P</div>
         </div>
-        <span class="font-heading font-bold text-navy-900 text-sm tracking-tight leading-tight">Perpustakaan<br>Digital Sekolah</span>
+        <span class="font-heading font-bold text-navy-900 text-sm tracking-tight leading-tight">Perpustakaan<br>Digital Ilmu</span>
       </a>
       <button onclick="closeSidebar()" aria-label="Tutup menu" class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-navy-900 hover:bg-slate-100 transition btn-press">
         <?= icon('close', 'w-5 h-5') ?>
@@ -285,6 +470,10 @@ function icon($name, $class = 'w-5 h-5') {
         <span class="side-ind"></span>
         <?= icon('mail', 'w-[18px] h-[18px]') ?> Kontak
       </a>
+      <a href="bantuan.php" class="side-link flex items-center gap-3 px-3.5 py-3 rounded-2xl text-slate-600 hover:bg-slate-50 hover:text-ocean-600 font-semibold text-sm">
+        <span class="side-ind"></span>
+        <?= icon('help', 'w-[18px] h-[18px]') ?> Bantuan
+      </a>
     </nav>
   </aside>
 
@@ -310,10 +499,11 @@ function icon($name, $class = 'w-5 h-5') {
         </a>
       </div>
 
-      <nav class="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600">
+      <nav class="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-semibold text-slate-600">
         <a href="#" class="text-ocean-600 transition">Beranda</a>
         <a href="#koleksi" class="hover:text-ocean-600 transition">Koleksi Novel</a>
         <a href="#tentang" class="hover:text-ocean-600 transition">Tentang</a>
+        <a href="bantuan.php" class="hover:text-ocean-600 transition">Bantuan</a>
         <a href="#kontak" class="hover:text-ocean-600 transition">Kontak</a>
       </nav>
 
@@ -336,7 +526,7 @@ function icon($name, $class = 'w-5 h-5') {
       <!-- KIRI: Hero Section (Typography Elegan & Search Bar Premium) -->
       <div class="lg:col-span-6 text-left reveal in-view">
         <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-ocean-500/10 border border-ocean-500/20 text-ocean-600 text-xs font-bold mb-5 shadow-sm">
-          <?= icon('sparkle', 'w-3.5 h-3.5') ?> Luxury Ocean Digital Library
+          <?= icon('sparkle', 'w-3.5 h-3.5') ?> Perpustakaan Digital Ilmu
         </div>
 
         <h1 class="font-heading font-extrabold text-4xl sm:text-[2.75rem] lg:text-5xl text-navy-900 leading-[1.12] tracking-tight mb-5">
@@ -344,7 +534,7 @@ function icon($name, $class = 'w-5 h-5') {
         </h1>
 
         <p class="text-slate-600 text-sm md:text-base leading-relaxed font-normal max-w-xl mb-7">
-          Nikmati kenyamanan membaca ribuan koleksi novel pilihan berbalut nuansa laut yang tenang, elegan, dan profesional untuk pengalaman literasi terbaik.
+          Nikmati kenyamanan membaca ribuan koleksi novel pilihan terbaik untuk pengalaman literasi yang berkesan.
         </p>
 
         <!-- Search Bar Premium -->
@@ -435,7 +625,7 @@ function icon($name, $class = 'w-5 h-5') {
         Koleksi Novel & Buku Pilihan
       </h2>
       <div class="w-12 h-1.5 bg-ocean-500 rounded-full mt-3"></div>
-      <p class="text-slate-500 text-sm mt-3">Jelajahi berbagai pilihan novel menarik dengan suasana baca yang tenang dan elegan.</p>
+      <p class="text-slate-500 text-sm mt-3">Jelajahi berbagai pilihan novel menarik.</p>
     </div>
 
     <!-- Sticky Filter Capsule (Glassmorphism) -->
@@ -565,7 +755,7 @@ function icon($name, $class = 'w-5 h-5') {
         <span class="text-xs font-bold uppercase tracking-wider text-ocean-400 bg-ocean-500/10 px-3.5 py-1.5 rounded-full mb-4 inline-block border border-ocean-500/20">Tentang Layanan</span>
         <h2 class="font-heading font-extrabold text-2xl md:text-3xl tracking-tight mb-4">Mendukung Budaya Literasi & Membaca Novel</h2>
         <p class="text-slate-300 text-sm leading-relaxed mb-6">
-          Perpustakaan Digital Sekolah hadir dengan konsep Modern Marine untuk memudahkan siswa dan staf pengajar dalam mengakses literatur dan koleksi novel berkualitas tinggi secara tenang, elegan, dan praktis.
+          Perpustakaan Digital Sekolah hadir dengan konsep Modern Marine untuk memudahkan siswa dan staf pengajar dalam mengakses literatur dan koleksi novel berkualitas secara praktis.
         </p>
         <div class="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-200">
           <div class="flex items-center gap-2 bg-white/5 px-4 py-3 rounded-2xl border border-white/10"><?= icon('sparkle','w-4 h-4 text-ocean-400') ?> Peminjaman Mudah</div>
@@ -620,6 +810,7 @@ function icon($name, $class = 'w-5 h-5') {
           <li><a href="#" class="hover:text-ocean-400 hover:pl-1 transition-all duration-200">Beranda</a></li>
           <li><a href="#koleksi" class="hover:text-ocean-400 hover:pl-1 transition-all duration-200">Koleksi Novel</a></li>
           <li><a href="#tentang" class="hover:text-ocean-400 hover:pl-1 transition-all duration-200">Tentang</a></li>
+          <li><a href="bantuan.php" class="hover:text-ocean-400 hover:pl-1 transition-all duration-200">Bantuan</a></li>
           <li><a href="#kontak" class="hover:text-ocean-400 hover:pl-1 transition-all duration-200">Kontak</a></li>
         </ul>
       </div>
@@ -629,7 +820,7 @@ function icon($name, $class = 'w-5 h-5') {
         <ul class="space-y-3 text-slate-400">
           <li class="flex items-start gap-2.5 leading-relaxed"><?= icon('pin','w-4 h-4 mt-0.5 text-ocean-400 shrink-0') ?> Jl. Samas Km. 11 (Kreteg Abang) Ngemplak, Srigading, Sanden, Bantul, Yogyakarta</li>
           <li class="flex items-center gap-2.5"><?= icon('mail','w-4 h-4 text-ocean-400 shrink-0') ?> sekolah@smkn1sanden.sch.id</li>
-          <li class="flex items-center gap-2.5"><?= icon('phone','w-4 h-4 text-ocean-400 shrink-0') ?> 0274 281-2187</li>
+          <li class="flex items-center gap-2.5"><?= icon('phone','w-4 h-4 text-ocean-400 shrink-0') ?> 0889-5758-621</li>
         </ul>
       </div>
 
@@ -698,6 +889,71 @@ function icon($name, $class = 'w-5 h-5') {
               <?= nl2br(htmlspecialchars($b['deskripsi'] ?: 'Belum ada deskripsi atau sinopsis untuk buku ini.')) ?>
             </div>
 
+            <!-- ===== INPUT RATING ===== -->
+            <div class="rating-input-card mb-5">
+              <div class="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <span class="block text-sm font-bold text-navy-900">Berikan Penilaian</span>
+                  <span class="block text-[11px] text-slate-400 mt-0.5">
+                    <?= !empty($idAnggotaLogin) ? 'Nilai 1–5 sesuai pengalaman membaca kamu.' : 'Login sebagai anggota untuk memberikan rating.' ?>
+                  </span>
+                </div>
+                <span class="rating-selected-badge" id="ratingBadge-<?= $b['id_buku'] ?>">
+                  <?php
+                    $trIdBuku = $transaksiRatingPerBuku[$b['id_buku']] ?? null;
+                    $nilaiSaya = $trIdBuku ? ($ratingSayaPerBuku[$trIdBuku] ?? 0) : 0;
+                  ?>
+                  <?= $nilaiSaya ? $nilaiSaya . '/5' : 'Belum dipilih' ?>
+                </span>
+              </div>
+
+              <?php if (!empty($idAnggotaLogin) && $trIdBuku): ?>
+                <form class="rating-form" data-book="<?= (int)$b['id_buku'] ?>">
+                  <input type="hidden" name="csrf" value="<?= htmlspecialchars($ratingCsrf) ?>">
+                  <input type="hidden" name="id_buku" value="<?= (int)$b['id_buku'] ?>">
+                  <input type="hidden" name="nilai" id="ratingValue-<?= $b['id_buku'] ?>" value="<?= (int)$nilaiSaya ?>">
+
+                  <div class="star-input-horizontal" role="radiogroup" aria-label="Pilih rating 1 sampai 5">
+                    <?php for ($star = 1; $star <= 5; $star++): ?>
+                      <button
+                        type="button"
+                        class="rating-star-btn <?= ($star <= $nilaiSaya) ? 'selected' : '' ?>"
+                        data-value="<?= $star ?>"
+                        aria-label="<?= $star ?> dari 5"
+                        aria-checked="<?= $star === $nilaiSaya ? 'true' : 'false' ?>"
+                      >★</button>
+                    <?php endfor; ?>
+                  </div>
+
+                  <div class="rating-help-text" id="ratingHelp-<?= $b['id_buku'] ?>">
+                    <?php
+                      $labelsRating = [
+                        1 => 'Sangat Buruk',
+                        2 => 'Buruk',
+                        3 => 'Cukup',
+                        4 => 'Bagus',
+                        5 => 'Sangat Bagus'
+                      ];
+                      echo $nilaiSaya ? ($nilaiSaya . ' dari 5 — ' . $labelsRating[$nilaiSaya]) : 'Klik bintang untuk memilih rating';
+                    ?>
+                  </div>
+
+                  <button type="submit" class="rating-submit-btn">
+                    Simpan Rating
+                  </button>
+                  <p class="rating-message" id="ratingMessage-<?= $b['id_buku'] ?>" aria-live="polite"></p>
+                </form>
+              <?php elseif (!empty($idAnggotaLogin)): ?>
+                <div class="rating-login-note">
+                  Kamu belum memiliki riwayat peminjaman buku ini. <strong>Pinjam buku terlebih dahulu</strong> agar bisa memberikan rating.
+                </div>
+              <?php else: ?>
+                <a href="siswa/login.php" class="rating-login-note rating-login-link">
+                  Login sebagai anggota untuk memberikan rating →
+                </a>
+              <?php endif; ?>
+            </div>
+
             <div class="text-xs mb-4">
               <span class="font-bold text-slate-700 block mb-2">Ulasan Pembaca:</span>
               <?php $komentarBuku = $komentarPerBuku[$b['id_buku']] ?? []; ?>
@@ -746,6 +1002,20 @@ function icon($name, $class = 'w-5 h-5') {
       </div>
     </div>
   <?php endforeach; ?>
+
+  <!-- ===== FLOATING HELP / BANTUAN ===== -->
+  <a href="bantuan.php"
+     class="fixed bottom-5 right-5 sm:bottom-7 sm:right-7 z-40 group flex items-center gap-2.5
+            bg-gradient-to-r from-ocean-600 to-royal-600 hover:from-ocean-500 hover:to-royal-500
+            text-white font-bold text-xs sm:text-sm px-4 sm:px-5 py-3.5 rounded-2xl
+            shadow-xl shadow-ocean-500/25 border border-white/20
+            transition-all duration-300 hover:-translate-y-1 btn-press"
+     aria-label="Buka halaman bantuan">
+    <span class="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+      <?= icon('help', 'w-[17px] h-[17px]') ?>
+    </span>
+    <span class="hidden sm:inline">Butuh Bantuan?</span>
+  </a>
 
   <!-- JavaScript Pendukung -->
   <script>
@@ -872,6 +1142,110 @@ function icon($name, $class = 'w-5 h-5') {
       heroSliderContainer.addEventListener('mouseenter', () => clearInterval(sliderInterval));
       heroSliderContainer.addEventListener('mouseleave', () => sliderInterval = setInterval(nextSlide, 5000));
     }
+
+    /* ===== Interactive Rating ===== */
+    const ratingLabels = {
+      1: 'Sangat Buruk',
+      2: 'Buruk',
+      3: 'Cukup',
+      4: 'Bagus',
+      5: 'Sangat Bagus'
+    };
+
+    document.querySelectorAll('.rating-form').forEach(function(form) {
+      const bookId = form.dataset.book;
+      const valueInput = document.getElementById('ratingValue-' + bookId);
+      const help = document.getElementById('ratingHelp-' + bookId);
+      const badge = document.getElementById('ratingBadge-' + bookId);
+      const message = document.getElementById('ratingMessage-' + bookId);
+      const buttons = form.querySelectorAll('.rating-star-btn');
+      const submitBtn = form.querySelector('.rating-submit-btn');
+
+      function paintRating(value, preview = false) {
+        buttons.forEach(function(btn) {
+          const n = Number(btn.dataset.value);
+          btn.classList.toggle('selected', !preview && n <= value);
+          btn.classList.toggle('preview', preview && n <= value);
+          btn.setAttribute('aria-checked', n === value ? 'true' : 'false');
+        });
+
+        if (value > 0) {
+          help.textContent = value + ' dari 5 — ' + ratingLabels[value];
+          badge.textContent = value + '/5';
+        } else {
+          help.textContent = 'Klik bintang untuk memilih rating';
+          badge.textContent = 'Belum dipilih';
+        }
+      }
+
+      const initialValue = Number(valueInput.value || 0);
+      paintRating(initialValue);
+
+      buttons.forEach(function(btn) {
+        btn.addEventListener('mouseenter', function() {
+          paintRating(Number(btn.dataset.value), true);
+        });
+        btn.addEventListener('focus', function() {
+          paintRating(Number(btn.dataset.value), true);
+        });
+        btn.addEventListener('click', function() {
+          valueInput.value = btn.dataset.value;
+          paintRating(Number(valueInput.value));
+          message.textContent = '';
+          message.className = 'rating-message';
+        });
+      });
+
+      const starWrap = form.querySelector('.star-input-horizontal');
+      starWrap.addEventListener('mouseleave', function() {
+        paintRating(Number(valueInput.value || 0));
+      });
+
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const nilai = Number(valueInput.value);
+        if (!nilai || nilai < 1 || nilai > 5) {
+          message.textContent = 'Silakan pilih rating 1 sampai 5 terlebih dahulu.';
+          message.className = 'rating-message error';
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Menyimpan...';
+        message.textContent = '';
+
+        try {
+          const response = await fetch('rating_submit.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+            body: new URLSearchParams(new FormData(form))
+          });
+
+          const data = await response.json();
+
+          if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Rating gagal disimpan.');
+          }
+
+          message.textContent = data.message || 'Rating berhasil disimpan.';
+          message.className = 'rating-message success';
+          badge.textContent = nilai + '/5';
+          paintRating(nilai);
+
+          // Refresh agar rata-rata & jumlah rating langsung berubah.
+          setTimeout(function() {
+            window.location.reload();
+          }, 850);
+        } catch (err) {
+          message.textContent = err.message || 'Terjadi kesalahan saat menyimpan rating.';
+          message.className = 'rating-message error';
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Simpan Rating';
+        }
+      });
+    });
 
     /* ===== Modal ===== */
     function bukaModal(id){
