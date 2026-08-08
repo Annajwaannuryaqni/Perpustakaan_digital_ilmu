@@ -100,18 +100,18 @@ function dashIcon($name, $class = 'ic') {
 
   .dash-status {
     display: inline-flex; align-items: center; gap: 8px;
-    background: rgba(255,255,255,0.06); color: #cbd5e1;
+    background: #f1f5f9; color: #475569;
     padding: 9px 16px; border-radius: 999px; font-size: .8rem; font-weight: 600;
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid #e2e8f0;
   }
-  .dash-status .ic { width: 16px; height: 16px; color: #60a5fa; }
+  .dash-status .ic { width: 16px; height: 16px; color: #2563eb; }
 
   .section-title {
     display: flex; align-items: center; gap: 10px;
-    color: #f8fafc; font-family: 'Poppins', sans-serif;
+    color: #0f172a; font-family: 'Poppins', sans-serif;
     font-weight: 700; font-size: 1.05rem; margin: 0 0 18px;
   }
-  .section-title .ic { color: #60a5fa; }
+  .section-title .ic { color: #2563eb; }
 
   .quick-menu-grid {
     display: grid;
@@ -119,34 +119,56 @@ function dashIcon($name, $class = 'ic') {
     gap: 16px;
     margin-top: 8px;
   }
-  .menu-card-item .ic { width: 26px; height: 26px; color: #60a5fa; }
-  .menu-card-item.danger .ic { color: #f87171; }
-  .menu-card-item.danger span { color: #f87171; }
+  .menu-card-item .ic { width: 26px; height: 26px; color: #2563eb; }
+  .menu-card-item.danger .ic { color: #dc2626; }
+  .menu-card-item.danger span { color: #dc2626; }
 
   .status-pill {
     display: inline-flex; align-items: center; padding: 5px 12px;
     border-radius: 999px; font-size: .72rem; font-weight: 700; letter-spacing: .02em;
   }
-  .status-pill.dipinjam { background: rgba(96,165,250,.15); color: #93c5fd; }
-  .status-pill.selesai  { background: rgba(52,211,153,.15); color: #34d399; }
-  .status-pill.telat    { background: rgba(248,113,113,.15); color: #f87171; }
+  .status-pill.dipinjam { background: rgba(37,99,235,.10); color: #2563eb; }
+  .status-pill.selesai  { background: rgba(52,211,153,.15); color: #16a34a; }
+  .status-pill.telat    { background: rgba(248,113,113,.15); color: #dc2626; }
 
-  .empty-row { text-align: center; color: #94a3b8; padding: 28px !important; font-size: .85rem; }
+  .empty-row { text-align: center; color: #64748b; padding: 28px !important; font-size: .85rem; }
 
   @media (max-width: 768px) {
     .quick-menu-grid { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
-<body class="dashboard-body">
+<body class="admin-page dashboard-body">
+  <button class="admin-menu-toggle" type="button" aria-label="Buka menu" onclick="document.body.classList.toggle('admin-menu-open')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="14" y2="17"/></svg></button>
+  <div class="admin-sidebar-overlay" onclick="document.body.classList.remove('admin-menu-open')"></div>
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-brand">
+      <div class="admin-brand-mark">P</div>
+      <div><strong>Perpustakaan</strong><small>Panel Admin</small></div>
+    </div>
+    <nav class="admin-side-nav" aria-label="Navigasi admin">
+      <div class="admin-side-label">MENU UTAMA</div>
+      <a href="dashboard.php" class="admin-side-link active"><span class="admin-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="8" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.5"/></svg></span><span>Dashboard</span></a>
+      <a href="buku.php" class="admin-side-link"><span class="admin-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5c2.2-1 5-1 7 .3v13.7c-2-1.3-4.8-1.3-7-.3V5.5Z"/><path d="M20 5.5c-2.2-1-5-1-7 .3v13.7c2-1.3 4.8-1.3 7-.3V5.5Z"/></svg></span><span>Buku</span></a>
+      <a href="anggota.php" class="admin-side-link"><span class="admin-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5c0-3.3 2.5-5.5 5.5-5.5s5.5 2.2 5.5 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 14.3c2.4.3 4 2.2 4 5.2"/></svg></span><span>Anggota</span></a>
+      <a href="transaksi.php" class="admin-side-link"><span class="admin-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5h13.5L15 4.5"/><path d="M20 16.5H6.5L9 19.5"/></svg></span><span>Transaksi</span></a>
+      <a href="kunjungan.php" class="admin-side-link"><span class="admin-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/><line x1="8" y1="3" x2="8" y2="6.5"/><line x1="16" y1="3" x2="16" y2="6.5"/></svg></span><span>Kunjungan</span></a>
+    </nav>
+    <div class="admin-sidebar-bottom">
+      <div class="admin-side-user"><span class="admin-avatar">A</span><span><strong>Admin</strong><small>Pengelola Perpustakaan</small></span></div>
+      <a href="logout.php" class="admin-logout-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H6.5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2H11"/><polyline points="15.5 8 19.5 12 15.5 16"/><line x1="19.5" y1="12" x2="9" y2="12"/></svg><span>Keluar</span></a>
+    </div>
+  </aside>
+  <main class="admin-main">
+
 
   <div class="container">
     <!-- Header Halaman -->
-    <div class="page-head glass-header" style="color:#f8fafc; align-items:center;">
+    <div class="page-head glass-header" style="align-items:center;">
       <div>
-        <div class="breadcrumb" style="color:#94a3b8;">Admin Panel &bull; Dashboard</div>
-        <h1 style="color:#f8fafc; display:flex; align-items:center; gap:12px;"><?= dashIcon('trend') ?> Dashboard Admin</h1>
-        <p style="color:#94a3b8;">Halo, <b style="color:#e2e8f0;"><?= htmlspecialchars($_SESSION['admin_nama']) ?></b> &mdash; ringkasan aktivitas dan informasi perpustakaan hari ini.</p>
+        <div class="breadcrumb" >Admin Panel &bull; Dashboard</div>
+        <h1 style="display:flex; align-items:center; gap:12px;"><?= dashIcon('trend') ?> Dashboard Admin</h1>
+        <p >Halo, <b ><?= htmlspecialchars($_SESSION['admin_nama']) ?></b> &mdash; ringkasan aktivitas dan informasi perpustakaan hari ini.</p>
       </div>
       <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
         <?php require_once '../includes/navbar_notification.php'; ?>
@@ -159,43 +181,43 @@ function dashIcon($name, $class = 'ic') {
       <div class="stat-card-modern">
         <div class="stat-icon"><?= dashIcon('book') ?></div>
         <div>
-          <div class="stat-value" style="color:#f8fafc;"><?= $totalJudul ?></div>
-          <div class="stat-label" style="color:#94a3b8;">Total Judul Buku</div>
+          <div class="stat-value" ><?= $totalJudul ?></div>
+          <div class="stat-label" >Total Judul Buku</div>
         </div>
       </div>
       <div class="stat-card-modern">
         <div class="stat-icon gold"><?= dashIcon('stack') ?></div>
         <div>
-          <div class="stat-value" style="color:#f8fafc;"><?= $totalStok ?></div>
-          <div class="stat-label" style="color:#94a3b8;">Total Stok Buku</div>
+          <div class="stat-value" ><?= $totalStok ?></div>
+          <div class="stat-label" >Total Stok Buku</div>
         </div>
       </div>
       <div class="stat-card-modern">
         <div class="stat-icon navy" style="background:rgba(148,163,184,.12); color:#cbd5e1;"><?= dashIcon('users') ?></div>
         <div>
-          <div class="stat-value" style="color:#f8fafc;"><?= $totalAnggota ?></div>
-          <div class="stat-label" style="color:#94a3b8;">Jumlah Anggota</div>
+          <div class="stat-value" ><?= $totalAnggota ?></div>
+          <div class="stat-label" >Jumlah Anggota</div>
         </div>
       </div>
       <div class="stat-card-modern">
-        <div class="stat-icon" style="background:rgba(96,165,250,.15); color:#60a5fa;"><?= dashIcon('repeat') ?></div>
+        <div class="stat-icon" style="background:rgba(37,99,235,.10); color:#60a5fa;"><?= dashIcon('repeat') ?></div>
         <div>
-          <div class="stat-value" style="color:#f8fafc;"><?= $peminjamanAktif ?></div>
-          <div class="stat-label" style="color:#94a3b8;">Peminjaman Aktif</div>
+          <div class="stat-value" ><?= $peminjamanAktif ?></div>
+          <div class="stat-label" >Peminjaman Aktif</div>
         </div>
       </div>
       <div class="stat-card-modern">
-        <div class="stat-icon" style="background:rgba(248,113,113,.15); color:#f87171;"><?= dashIcon('clock') ?></div>
+        <div class="stat-icon" style="background:rgba(248,113,113,.15); color:#dc2626;"><?= dashIcon('clock') ?></div>
         <div>
-          <div class="stat-value" style="color:#f8fafc;"><?= $terlambat ?></div>
-          <div class="stat-label" style="color:#94a3b8;">Terlambat Dikembalikan</div>
+          <div class="stat-value" ><?= $terlambat ?></div>
+          <div class="stat-label" >Terlambat Dikembalikan</div>
         </div>
       </div>
       <div class="stat-card-modern">
         <div class="stat-icon gold"><?= dashIcon('coin') ?></div>
         <div>
-          <div class="stat-value" style="color:#f8fafc;">Rp<?= number_format($totalDenda, 0, ',', '.') ?></div>
-          <div class="stat-label" style="color:#94a3b8;">Total Denda Tercatat</div>
+          <div class="stat-value" >Rp<?= number_format($totalDenda, 0, ',', '.') ?></div>
+          <div class="stat-label" >Total Denda Tercatat</div>
         </div>
       </div>
     </div>
@@ -314,7 +336,7 @@ function dashIcon($name, $class = 'ic') {
     const labelKunjungan  = <?= json_encode($labelKunjungan) ?>;
     const dataKunjungan   = <?= json_encode($dataKunjungan) ?>;
     const emptyState = { labels: ['Belum ada data'], values: [0] };
-    const gridColor = 'rgba(255,255,255,0.06)';
+    const gridColor = 'rgba(148,163,184,0.18)';
 
     new Chart(document.getElementById('chartPeminjaman'), {
       type: 'line',
@@ -323,9 +345,9 @@ function dashIcon($name, $class = 'ic') {
         datasets: [{
           label: 'Jumlah Peminjaman',
           data: dataPeminjaman.length ? dataPeminjaman : emptyState.values,
-          borderColor: '#60a5fa',
-          backgroundColor: 'rgba(96,165,250,0.12)',
-          pointBackgroundColor: '#60a5fa',
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37,99,235,0.10)',
+          pointBackgroundColor: '#2563eb',
           pointRadius: 4,
           pointHoverRadius: 6,
           tension: 0.35,
@@ -338,7 +360,7 @@ function dashIcon($name, $class = 'ic') {
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: { backgroundColor: '#1e293b', titleFont: { family: 'Poppins', size: 13 }, bodyFont: { family: 'Inter', size: 13 }, padding: 12, cornerRadius: 8 }
+          tooltip: { backgroundColor: '#0f172a', titleFont: { family: 'Poppins', size: 13 }, bodyFont: { family: 'Inter', size: 13 }, padding: 12, cornerRadius: 8 }
         },
         scales: {
           y: { beginAtZero: true, ticks: { precision: 0, color: '#94a3b8' }, grid: { color: gridColor } },
@@ -364,7 +386,7 @@ function dashIcon($name, $class = 'ic') {
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: { backgroundColor: '#1e293b', titleFont: { family: 'Poppins', size: 13 }, bodyFont: { family: 'Inter', size: 13 }, padding: 12, cornerRadius: 8 }
+          tooltip: { backgroundColor: '#0f172a', titleFont: { family: 'Poppins', size: 13 }, bodyFont: { family: 'Inter', size: 13 }, padding: 12, cornerRadius: 8 }
         },
         scales: {
           y: { beginAtZero: true, ticks: { precision: 0, color: '#94a3b8' }, grid: { color: gridColor } },
@@ -394,5 +416,6 @@ function dashIcon($name, $class = 'ic') {
     });
   </script>
   <?php endif; ?>
+  </main>
 </body>
 </html>
