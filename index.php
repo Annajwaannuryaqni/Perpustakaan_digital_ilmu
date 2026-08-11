@@ -91,6 +91,48 @@ try {
     }
 } catch (PDOException $e) { /* tabel rating belum ada, lewati */ }
 
+/**
+ * ============================================================
+ *  RINGKASAN STATISTIK KOLEKSI (Landing Page Publik)
+ *  Seluruhnya dihitung dari data PHP yang sudah tersedia
+ *  di atas ($daftarBuku, $bukuPerGenre, $ratingPerBuku).
+ * ============================================================
+ */
+$totalBukuAktif  = count($daftarBuku);
+$totalGenreAktif = count($bukuPerGenre);
+
+$genreTerbanyakNama  = null;
+$genreTerbanyakJumlah = 0;
+foreach ($bukuPerGenre as $genre => $daftar) {
+    if (count($daftar) > $genreTerbanyakJumlah) {
+        $genreTerbanyakJumlah = count($daftar);
+        $genreTerbanyakNama = $genre;
+    }
+}
+
+// Rata-rata rating keseluruhan (gabungan seluruh buku yang punya rating)
+$totalUlasanSemua = 0;
+$jumlahSkorSemua  = 0.0;
+foreach ($ratingPerBuku as $rp) {
+    $totalUlasanSemua += $rp['jumlah'];
+    $jumlahSkorSemua  += $rp['rata'] * $rp['jumlah'];
+}
+$rataRatingSemua = $totalUlasanSemua > 0 ? ($jumlahSkorSemua / $totalUlasanSemua) : 0;
+
+// Urutkan genre dari yang terbanyak, untuk breakdown ringkas (top 5 + "lainnya")
+$genreUrutTerbanyak = $bukuPerGenre;
+uasort($genreUrutTerbanyak, function($a, $b) { return count($b) <=> count($a); });
+$genreTop5 = array_slice($genreUrutTerbanyak, 0, 5, true);
+$genreSisaJumlah = 0;
+$genreSisaCount = max(0, count($genreUrutTerbanyak) - 5);
+if ($genreSisaCount > 0) {
+    $i = 0;
+    foreach ($genreUrutTerbanyak as $daftarGenre) {
+        $i++;
+        if ($i > 5) $genreSisaJumlah += count($daftarGenre);
+    }
+}
+
 // Komentar per buku, terbaru dulu, sekalian ambil rating yang diberikan reviewer itu
 // (try-catch: aman kalau tabel "komentar"/"rating" belum dibuat)
 $komentarPerBuku = [];
@@ -223,9 +265,9 @@ function icon($name, $class = 'w-5 h-5') {
   .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 
   #navbar { transition: all .35s cubic-bezier(0.16, 1, 0.3, 1); }
-  #navbar.shrink { box-shadow: 0 1px 0 rgba(14,165,233,.1), 0 16px 40px -20px rgba(11,31,58,.2); }
-  #navbar.shrink .nav-inner { height: 64px; }
-  .nav-inner { height: 84px; transition: height .35s cubic-bezier(0.16, 1, 0.3, 1); }
+  #navbar.shrink { box-shadow: 0 1px 0 rgba(14,165,233,.08), 0 12px 28px -20px rgba(11,31,58,.16); }
+  #navbar.shrink .nav-inner { height: 56px; }
+  .nav-inner { height: 68px; transition: height .35s cubic-bezier(0.16, 1, 0.3, 1); }
 
   #sidebar {
     width: var(--sbw); transform: translateX(-100%);
@@ -254,10 +296,10 @@ function icon($name, $class = 'w-5 h-5') {
   @keyframes floatY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
   .float-slow { animation: floatY 6s ease-in-out infinite; }
 
-  .buku-card { transition: transform .4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .4s cubic-bezier(0.16, 1, 0.3, 1), border-color .3s ease; }
-  .buku-card:hover { transform: translateY(-6px); border-color: rgba(14,165,233,.4); }
-  .cover-img { transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
-  .buku-card:hover .cover-img { transform: scale(1.07); }
+  .buku-card { transition: transform .25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .25s cubic-bezier(0.16, 1, 0.3, 1), border-color .25s ease; }
+  .buku-card:hover { transform: translateY(-3px); border-color: rgba(14,165,233,.3); }
+  .cover-img { transition: transform .5s cubic-bezier(0.16, 1, 0.3, 1); }
+  .buku-card:hover .cover-img { transform: scale(1.035); }
 
   .reveal { opacity: 0; transform: translateY(22px); transition: opacity .6s cubic-bezier(0.16, 1, 0.3, 1), transform .6s cubic-bezier(0.16, 1, 0.3, 1); }
   .reveal.in-view { opacity: 1; transform: translateY(0); }
@@ -269,8 +311,6 @@ function icon($name, $class = 'w-5 h-5') {
     opacity: 0; transition: opacity .3s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .overlay.show { display: flex; opacity: 1; }
-  .modal-panel { transform: scale(.94) translateY(10px); opacity: 0; transition: transform .35s cubic-bezier(0.16, 1, 0.3, 1), opacity .35s cubic-bezier(0.16, 1, 0.3, 1); }
-  .overlay.show .modal-panel { transform: scale(1) translateY(0); opacity: 1; }
 
   .genre-hidden, .buku-hidden { display: none !important; }
 
@@ -321,102 +361,228 @@ function icon($name, $class = 'w-5 h-5') {
     max-width: none !important;
   }
 
-  /* ===== Interactive Rating ===== */
+  /* ============================================================
+     BOOK DETAIL MODAL — Redesign (namespaced & self-contained)
+     ============================================================ */
+  .book-detail-modal {
+    position: relative;
+    width: 980px;
+    max-width: 95vw;
+    max-height: 88vh;
+    background: #ffffff;
+    border-radius: 26px;
+    overflow: hidden;
+    box-shadow: 0 40px 90px -20px rgba(11,31,58,.45), 0 0 0 1px rgba(11,31,58,.03);
+    display: flex;
+    flex-direction: row;
+    transform: scale(.94) translateY(14px);
+    opacity: 0;
+    transition: transform .38s cubic-bezier(0.16,1,0.3,1), opacity .38s cubic-bezier(0.16,1,0.3,1);
+  }
+  .overlay.show .book-detail-modal { transform: scale(1) translateY(0); opacity: 1; }
+
+  .book-detail-close {
+    position: absolute; top: 16px; right: 16px; z-index: 20;
+    width: 40px; height: 40px; border-radius: 999px;
+    background: #F1F5F9; color: #334155; border: 1px solid #E2E8F0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background-color .2s ease, color .2s ease, transform .2s ease;
+  }
+  .book-detail-close:hover { background: #0B1F3A; color: #fff; transform: rotate(90deg); }
+
+  /* ----- Kolom kiri: cover + aksi ----- */
+  .book-detail-left {
+    flex: 0 0 268px;
+    background: #F8FAFC;
+    border-right: 1px solid #E2E8F0;
+    padding: 34px 26px 28px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .book-detail-cover {
+    width: 100%;
+    aspect-ratio: 3 / 4.3;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #E2E8F0;
+    box-shadow: 0 20px 40px -14px rgba(11,31,58,.32);
+  }
+  .book-detail-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .book-detail-cover .no-cover {
+    width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+    color: #94A3B8; font-size: 11px; text-align: center; padding: 0 16px;
+  }
+
+  .book-detail-actions { margin-top: 22px; display: flex; flex-direction: column; gap: 10px; }
+  .bd-btn {
+    height: 46px; border-radius: 12px; font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease;
+  }
+  .bd-btn:active { transform: scale(.97); }
+  .bd-btn-primary {
+    background: linear-gradient(135deg, #155EEF, #146EF5);
+    color: #fff;
+    box-shadow: 0 12px 26px -8px rgba(21,94,239,.55);
+  }
+  .bd-btn-primary:hover { box-shadow: 0 16px 30px -8px rgba(21,94,239,.6); transform: translateY(-2px); }
+  .bd-btn-secondary {
+    background: #EEF4FF;
+    color: #155EEF;
+    border: 1px solid #DCE7FE;
+  }
+  .bd-btn-secondary:hover { background: #E1EBFF; transform: translateY(-2px); }
+
+  /* ----- Kolom kanan: hero + konten (scrollable) ----- */
+  .book-detail-right { flex: 1; min-width: 0; display: flex; flex-direction: column; max-height: 100%; overflow: hidden; }
+
+  .book-detail-hero {
+    flex-shrink: 0;
+    padding: 28px 34px 24px;
+    background: linear-gradient(135deg, #0B1F3A, #155EEF);
+    color: #fff;
+  }
+  .bd-title {
+    font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 22px; line-height: 1.32;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    margin-bottom: 5px;
+  }
+  .bd-author { font-size: 13px; font-weight: 500; color: rgba(255,255,255,.78); margin-bottom: 14px; }
+  .bd-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .bd-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 12px; border-radius: 999px; font-size: 11px; font-weight: 700;
+    background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22); color: #fff;
+  }
+  .bd-badge-status { background: rgba(255,255,255,.95); color: #0B1F3A; }
+  .bd-badge-status .dot { width: 6px; height: 6px; border-radius: 50%; background: #16A34A; display: inline-block; }
+
+  .book-detail-content {
+    flex: 1; overflow-y: auto; padding: 26px 34px 30px;
+    scrollbar-width: thin; scrollbar-color: #CBD5E1 transparent;
+  }
+  .book-detail-content::-webkit-scrollbar { width: 6px; }
+  .book-detail-content::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 999px; }
+  .book-detail-content::-webkit-scrollbar-track { background: transparent; }
+
+  .bd-content-grid {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    grid-template-areas: "tentang informasi" "ulasan rating";
+    column-gap: 32px; row-gap: 30px;
+  }
+  .bd-area-tentang   { grid-area: tentang; }
+  .bd-area-informasi { grid-area: informasi; }
+  .bd-area-ulasan    { grid-area: ulasan; }
+  .bd-area-rating    { grid-area: rating; }
+
+  .bd-heading {
+    font-family: 'Poppins', sans-serif; font-size: 12.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em; color: #0B1F3A;
+    margin-bottom: 12px; padding-bottom: 9px; border-bottom: 1px solid #E2E8F0;
+  }
+  .bd-desc { font-size: 13.5px; line-height: 1.75; color: #475569; }
+
+  .bd-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; }
+  .bd-info-item { min-width: 0; }
+  .bd-info-label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #94A3B8; font-weight: 700; margin-bottom: 3px; }
+  .bd-info-value { font-size: 13px; font-weight: 700; color: #0F172A; word-break: break-word; }
+  .bd-status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #15803D; background: #ECFDF5; border: 1px solid #BBF7D0; padding: 3px 10px; border-radius: 999px; }
+  .bd-status-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: #16A34A; }
+
+  .bd-rating-box {
+    background: linear-gradient(135deg, #EEF4FF, #ffffff);
+    border: 1px solid #DCE7FE; border-radius: 16px; padding: 18px;
+    display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px;
+  }
+  .bd-rating-score { font-family: 'Poppins', sans-serif; font-size: 30px; font-weight: 800; color: #0B1F3A; line-height: 1; }
+  .bd-rating-count { font-size: 11px; color: #64748B; font-weight: 600; }
+
+  /* ----- Interactive rating (nama class dipertahankan untuk JS) ----- */
   .rating-input-card {
-    background: linear-gradient(135deg, #fffdf5, #ffffff);
-    border: 1px solid #fde7a8;
-    border-radius: 18px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
     padding: 16px;
+    margin-top: 14px;
   }
   .rating-selected-badge {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    padding: 6px 10px;
-    border-radius: 999px;
-    background: #fff7d6;
-    color: #92400e;
-    font-size: 10px;
-    font-weight: 800;
+    flex-shrink: 0; display: inline-flex; align-items: center;
+    padding: 6px 10px; border-radius: 999px;
+    background: #EEF4FF; color: #155EEF; font-size: 10px; font-weight: 800;
   }
-  .star-input-horizontal {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 4px;
-    min-height: 48px;
-  }
+  .star-input-horizontal { display: flex; align-items: center; gap: 4px; min-height: 44px; }
   .rating-star-btn {
-    appearance: none;
-    border: 0;
-    background: transparent;
-    padding: 2px;
-    margin: 0;
-    font-size: 34px;
-    line-height: 1;
-    color: #d5dce6;
-    cursor: pointer;
+    appearance: none; border: 0; background: transparent; padding: 2px; margin: 0;
+    font-size: 30px; line-height: 1; color: #D5DCE6; cursor: pointer;
     transition: color .15s ease, transform .15s ease, filter .15s ease;
   }
-  .rating-star-btn:hover,
-  .rating-star-btn.preview,
-  .rating-star-btn.selected {
-    color: #f59e0b;
-    filter: drop-shadow(0 3px 5px rgba(245,158,11,.18));
+  .rating-star-btn:hover, .rating-star-btn.preview, .rating-star-btn.selected {
+    color: #F5A623; filter: drop-shadow(0 3px 5px rgba(245,166,35,.25));
   }
-  .rating-star-btn:hover,
-  .rating-star-btn.preview {
-    transform: translateY(-2px) scale(1.04);
-  }
-  .rating-help-text {
-    min-height: 18px;
-    margin-top: 2px;
-    color: #64748b;
-    font-size: 11px;
-    font-weight: 700;
-  }
+  .rating-star-btn:hover, .rating-star-btn.preview { transform: translateY(-2px) scale(1.04); }
+  .rating-help-text { min-height: 18px; margin-top: 2px; color: #64748B; font-size: 11px; font-weight: 700; }
   .rating-submit-btn {
-    margin-top: 10px;
-    width: 100%;
-    border: 0;
-    border-radius: 12px;
-    padding: 10px 14px;
-    background: linear-gradient(135deg, #0284c7, #2563eb);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 800;
-    cursor: pointer;
-    box-shadow: 0 8px 18px rgba(37,99,235,.16);
+    margin-top: 10px; width: 100%; border: 0; border-radius: 12px; padding: 10px 14px;
+    background: linear-gradient(135deg, #155EEF, #146EF5); color: #fff;
+    font-size: 12px; font-weight: 800; cursor: pointer;
+    box-shadow: 0 8px 18px rgba(21,94,239,.25);
     transition: transform .18s ease, opacity .18s ease, box-shadow .18s ease;
   }
-  .rating-submit-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(37,99,235,.22); }
+  .rating-submit-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(21,94,239,.32); }
   .rating-submit-btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
-  .rating-message {
-    min-height: 18px;
-    margin: 7px 0 0;
-    font-size: 11px;
-    font-weight: 700;
-  }
-  .rating-message.success { color: #15803d; }
-  .rating-message.error { color: #dc2626; }
+  .rating-message { min-height: 18px; margin: 7px 0 0; font-size: 11px; font-weight: 700; }
+  .rating-message.success { color: #15803D; }
+  .rating-message.error { color: #DC2626; }
   .rating-login-note {
-    display: block;
-    padding: 11px 12px;
-    border-radius: 12px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    color: #64748b;
-    font-size: 11px;
-    line-height: 1.55;
+    display: block; padding: 11px 12px; border-radius: 12px;
+    background: #F8FAFC; border: 1px solid #E2E8F0; color: #64748B;
+    font-size: 11px; line-height: 1.55; margin-top: 14px;
   }
-  .rating-login-link {
-    text-decoration: none;
-    color: #2563eb;
-    font-weight: 700;
+  .rating-login-link { text-decoration: none; color: #155EEF; font-weight: 700; }
+
+  /* ----- Ulasan pembaca (list, bukan card besar) ----- */
+  .komentar-list { margin-top: 16px; display: flex; flex-direction: column; max-height: 220px; overflow-y: auto; padding-right: 4px; }
+  .komentar-item { display: flex; gap: 10px; padding: 12px 0; border-bottom: 1px solid #E2E8F0; }
+  .komentar-item:last-child { border-bottom: none; }
+  .komentar-avatar {
+    flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #0B1F3A, #155EEF); color: #fff;
+    font-weight: 700; font-size: 11px; display: flex; align-items: center; justify-content: center;
+  }
+  .komentar-body { flex: 1; min-width: 0; }
+  .komentar-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .komentar-nama { font-weight: 700; font-size: 12px; color: #0B1F3A; }
+  .komentar-tgl { font-size: 10.5px; color: #94A3B8; white-space: nowrap; }
+  .komentar-isi { font-size: 12.5px; color: #475569; margin-top: 3px; line-height: 1.55; }
+  .komentar-kosong { font-size: 12.5px; color: #94A3B8; font-style: italic; margin-top: 12px; }
+
+  /* ----- Responsive ----- */
+  @media (max-width: 768px) {
+    .book-detail-modal { flex-direction: column; max-height: 92vh; border-radius: 20px; width: 95vw; }
+    .book-detail-left {
+      flex: 0 0 auto; flex-direction: row; align-items: flex-start; gap: 18px;
+      border-right: none; border-bottom: 1px solid #E2E8F0; padding: 22px 20px; overflow: visible;
+    }
+    .book-detail-cover { width: 128px; flex-shrink: 0; }
+    .book-detail-actions { flex: 1; margin-top: 0; justify-content: center; }
+    .book-detail-hero { padding: 20px 20px 16px; }
+    .bd-title { font-size: 19px; }
+    .book-detail-content { padding: 20px 20px 24px; }
+    .bd-content-grid {
+      grid-template-columns: 1fr;
+      grid-template-areas: "informasi" "tentang" "rating" "ulasan";
+      row-gap: 24px;
+    }
   }
   @media (max-width: 480px) {
-    .star-input-horizontal { justify-content: center; gap: 1px; }
-    .rating-star-btn { font-size: 31px; }
+    .book-detail-modal { width: 96vw; max-height: 94vh; border-radius: 18px; }
+    .book-detail-left { flex-direction: column; align-items: stretch; }
+    .book-detail-cover { width: 100%; max-width: 220px; margin: 0 auto; aspect-ratio: 3/4.3; }
+    .star-input-horizontal { justify-content: flex-start; gap: 1px; }
+    .rating-star-btn { font-size: 28px; }
   }
 </style>
 </head>
@@ -499,7 +665,7 @@ function icon($name, $class = 'w-5 h-5') {
         </a>
       </div>
 
-      <nav class="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-semibold text-slate-600">
+      <nav class="hidden lg:flex items-center gap-7 text-sm font-semibold text-slate-600">
         <a href="#" class="text-ocean-600 transition">Beranda</a>
         <a href="#koleksi" class="hover:text-ocean-600 transition">Koleksi Novel</a>
         <a href="#tentang" class="hover:text-ocean-600 transition">Tentang</a>
@@ -508,13 +674,13 @@ function icon($name, $class = 'w-5 h-5') {
       </nav>
 
       <div class="flex items-center gap-2 sm:gap-3">
-        <a href="#koleksi" class="bg-gradient-to-r from-navy-900 to-navy-800 hover:from-ocean-600 hover:to-ocean-500 text-white text-xs md:text-sm font-semibold px-4 md:px-5 py-2.5 rounded-xl shadow-md shadow-navy-900/10 transition btn-press">Jelajahi Novel</a>
+        <a href="#koleksi" class="bg-navy-900 hover:bg-ocean-600 text-white text-xs md:text-sm font-semibold px-4 py-2 rounded-lg shadow-sm transition btn-press">Jelajahi Novel</a>
       </div>
     </div>
   </header>
 
   <!-- ===== HERO SECTION & SLIDER (Luxury Ocean Theme) ===== -->
-  <section class="relative bg-gradient-to-b from-white via-sky-50/30 to-slate-100/40 pt-10 pb-14 md:pt-16 md:pb-20 overflow-hidden">
+  <section class="relative bg-gradient-to-b from-white via-sky-50/30 to-slate-100/40 pt-10 pb-10 md:pt-14 md:pb-14 overflow-hidden">
     
     <!-- Efek Cahaya Bawah Laut & Bubble Transparan Halus -->
     <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-gradient-to-r from-sky-400/10 to-blue-600/10 blur-[120px] pointer-events-none rounded-full"></div>
@@ -529,26 +695,26 @@ function icon($name, $class = 'w-5 h-5') {
           <?= icon('sparkle', 'w-3.5 h-3.5') ?> Perpustakaan Digital Ilmu
         </div>
 
-        <h1 class="font-heading font-extrabold text-4xl sm:text-[2.75rem] lg:text-5xl text-navy-900 leading-[1.12] tracking-tight mb-5">
-          Gerbang Literasi & <br class="hidden sm:inline"><span class="text-transparent bg-clip-text bg-gradient-to-r from-ocean-500 to-royal-600">Dunia Novel Modern</span>
+        <h1 class="font-heading font-extrabold text-[1.85rem] sm:text-3xl lg:text-[2.35rem] text-navy-900 leading-[1.22] tracking-tight mb-4">
+          Gerbang Literasi & <span class="text-transparent bg-clip-text bg-gradient-to-r from-ocean-500 to-royal-600">Dunia Novel Modern</span>
         </h1>
 
-        <p class="text-slate-600 text-sm md:text-base leading-relaxed font-normal max-w-xl mb-7">
+        <p class="text-slate-600 text-sm md:text-[15px] leading-relaxed font-normal max-w-md mb-6">
           Nikmati kenyamanan membaca ribuan koleksi novel pilihan terbaik untuk pengalaman literasi yang berkesan.
         </p>
 
         <!-- Search Bar Premium -->
-        <div class="max-w-xl mb-3">
-          <div class="relative shadow-premium rounded-2xl bg-white/90 backdrop-blur-md border border-sky-100 p-2 flex items-center focus-within:ring-2 focus-within:ring-ocean-500/30 transition">
-            <span class="pl-4 text-slate-400 shrink-0"><?= icon('search', 'w-5 h-5') ?></span>
+        <div class="max-w-lg mb-3">
+          <div class="relative shadow-card rounded-xl bg-white/90 backdrop-blur-md border border-sky-100 p-1.5 flex items-center focus-within:ring-2 focus-within:ring-ocean-500/30 transition">
+            <span class="pl-3.5 text-slate-400 shrink-0"><?= icon('search', 'w-[18px] h-[18px]') ?></span>
             <input
               id="searchInput"
               type="text"
               placeholder="Cari judul novel atau nama pengarang..."
-              class="w-full pl-3 pr-4 py-2.5 bg-transparent text-navy-900 placeholder:text-slate-400 text-sm font-medium focus:outline-none"
+              class="w-full pl-3 pr-4 py-2 bg-transparent text-navy-900 placeholder:text-slate-400 text-sm font-medium focus:outline-none"
               autocomplete="off"
             >
-            <button onclick="triggerSearch()" class="bg-gradient-to-r from-ocean-600 to-royal-600 hover:from-ocean-500 hover:to-royal-500 text-white text-xs md:text-sm font-semibold px-6 py-2.5 rounded-xl transition shadow-md shadow-ocean-500/25 shrink-0 btn-press">
+            <button onclick="triggerSearch()" class="bg-navy-900 hover:bg-ocean-600 text-white text-xs md:text-sm font-semibold px-5 py-2 rounded-lg transition shrink-0 btn-press">
               Cari
             </button>
           </div>
@@ -558,7 +724,7 @@ function icon($name, $class = 'w-5 h-5') {
 
       <!-- KANAN: Hero Slider (Tepat 3 Slider, Fade+Zoom, Glassmorphism, Shadow Premium) -->
       <div class="lg:col-span-6 relative reveal in-view">
-        <div class="relative w-full max-w-[600px] h-[400px] md:h-[430px] mx-auto rounded-[2rem] overflow-hidden shadow-slider border border-sky-100 bg-navy-900 group float-slow">
+        <div class="relative w-full max-w-[560px] h-[320px] md:h-[340px] mx-auto rounded-[1.75rem] overflow-hidden shadow-premium border border-sky-100 bg-navy-900 group float-slow">
 
           <div id="heroSlider" class="slider-track w-full h-full">
             <?php
@@ -618,24 +784,24 @@ function icon($name, $class = 'w-5 h-5') {
   </section>
 
   <!-- ===== SECTION KOLEKSI & FILTER KATEGORI ===== -->
-  <main id="koleksi" class="max-w-7xl mx-auto px-6 py-14 mt-6 scroll-mt-24">
+  <main id="koleksi" class="max-w-7xl mx-auto px-6 py-8 md:py-10 scroll-mt-24">
 
-    <div class="mb-8 reveal">
-      <h2 class="font-heading font-bold text-3xl text-navy-900 tracking-tight">
+    <div class="mb-6 reveal">
+      <h2 class="font-heading font-bold text-2xl md:text-[1.7rem] text-navy-900 tracking-tight">
         Koleksi Novel & Buku Pilihan
       </h2>
-      <div class="w-12 h-1.5 bg-ocean-500 rounded-full mt-3"></div>
-      <p class="text-slate-500 text-sm mt-3">Jelajahi berbagai pilihan novel menarik.</p>
+      <div class="w-10 h-1 bg-ocean-500 rounded-full mt-2.5"></div>
+      <p class="text-slate-500 text-sm mt-2.5">Jelajahi berbagai pilihan novel menarik.</p>
     </div>
 
-    <!-- Sticky Filter Capsule (Glassmorphism) -->
-    <div class="sticky top-[64px] z-30 bg-white/85 backdrop-blur-xl py-3.5 mb-10 -mx-6 px-6 border-b border-sky-100 shadow-sm rounded-b-2xl">
+    <!-- Sticky Filter Capsule -->
+    <div class="sticky top-[56px] z-30 bg-white/90 backdrop-blur-xl py-2.5 mb-7 -mx-6 px-6 border-b border-sky-100">
       <div class="flex items-center gap-2 overflow-x-auto scrollbar-none">
-        <button onclick="filterKategori('semua')" class="cat-pill shrink-0 bg-navy-900 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-sm">
+        <button onclick="filterKategori('semua')" class="cat-pill shrink-0 bg-navy-900 text-white text-xs font-semibold px-3.5 py-2 rounded-full">
           Semua Kategori
         </button>
         <?php foreach ($kategoriList as $cat): ?>
-          <button onclick="filterKategori('<?= htmlspecialchars($cat) ?>')" class="cat-pill shrink-0 bg-white hover:bg-ocean-500 hover:text-white hover:border-ocean-500 text-slate-700 border border-slate-200 text-xs font-semibold px-4 py-2.5 rounded-full shadow-sm">
+          <button onclick="filterKategori('<?= htmlspecialchars($cat) ?>')" class="cat-pill shrink-0 bg-white hover:bg-ocean-500 hover:text-white hover:border-ocean-500 text-slate-700 border border-slate-200 text-xs font-semibold px-3.5 py-2 rounded-full">
             <?= htmlspecialchars($cat) ?>
           </button>
         <?php endforeach; ?>
@@ -660,8 +826,8 @@ function icon($name, $class = 'w-5 h-5') {
       </div>
 
       <?php foreach ($bukuPerGenre as $genre => $daftar): ?>
-        <div class="genre-section mb-14 reveal" data-genre-section data-genre-name="<?= htmlspecialchars($genre) ?>">
-          <div class="flex items-center justify-between mb-6 border-b border-sky-100 pb-3">
+        <div class="genre-section mb-10 reveal" data-genre-section data-genre-name="<?= htmlspecialchars($genre) ?>">
+          <div class="flex items-center justify-between mb-5 border-b border-sky-100 pb-3">
             <div class="flex items-center gap-3">
               <div class="w-2 h-5 rounded-full bg-ocean-500"></div>
               <h3 class="font-heading font-bold text-lg text-navy-900 tracking-tight"><?= htmlspecialchars($genre) ?></h3>
@@ -672,7 +838,7 @@ function icon($name, $class = 'w-5 h-5') {
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             <?php foreach ($daftar as $b): ?>
               <!-- Card Buku Mewah (Hover naik, shadow ocean, border berubah biru) -->
-              <div class="buku-card bg-white rounded-[1.5rem] overflow-hidden border border-slate-200/80 shadow-card hover:shadow-cardHover cursor-pointer flex flex-col justify-between group h-full"
+              <div class="buku-card bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-card hover:shadow-md cursor-pointer flex flex-col justify-between group h-full"
                    onclick="bukaModal('modal-<?= $b['id_buku'] ?>')"
                    data-judul="<?= htmlspecialchars(strtolower($b['judul'])) ?>"
                    data-pengarang="<?= htmlspecialchars(strtolower($b['pengarang'])) ?>"
@@ -687,7 +853,7 @@ function icon($name, $class = 'w-5 h-5') {
                         <span class="text-xs text-slate-400 font-medium text-center">Cover Tidak Tersedia</span>
                       </div>
                     <?php endif; ?>
-                    <span class="absolute top-2.5 left-2.5 bg-navy-900/80 text-sky-300 text-[9px] font-bold px-2.5 py-1 rounded-lg backdrop-blur-md shadow-sm border border-white/10">
+                    <span class="absolute top-2 left-2 bg-navy-900/75 text-sky-300 text-[9px] font-semibold px-2 py-0.5 rounded-md backdrop-blur-sm">
                       <?= htmlspecialchars($genre) ?>
                     </span>
                   </div>
@@ -703,10 +869,10 @@ function icon($name, $class = 'w-5 h-5') {
                   </div>
                 </div>
 
-                <div class="p-4 pt-0 mt-auto flex items-center justify-between border-t border-slate-50">
-                  <span class="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md font-semibold">📚 <?= (int)$b['stok'] ?> Tersedia</span>
-                  <span class="text-[11px] font-bold text-ocean-600 flex items-center gap-1 group-hover:gap-1.5 transition-all duration-300">
-                    Lihat Detail <?= icon('arrow-right', 'w-3.5 h-3.5') ?>
+                <div class="px-4 pb-3.5 pt-2.5 mt-auto flex items-center justify-between border-t border-slate-50">
+                  <span class="text-[10px] text-slate-500 font-medium"><?= (int)$b['stok'] ?> tersedia</span>
+                  <span class="text-[11px] font-semibold text-ocean-600 flex items-center gap-1 group-hover:gap-1.5 transition-all duration-300">
+                    Detail <?= icon('arrow-right', 'w-3 h-3') ?>
                   </span>
                 </div>
 
@@ -719,26 +885,61 @@ function icon($name, $class = 'w-5 h-5') {
     <?php endif; ?>
   </main>
 
-  <!-- ===== SECTION GRAFIK STATISTIK KOLEKSI (Publik) ===== -->
-  <section class="bg-white py-16 px-6 border-t border-sky-100">
+  <!-- ===== SECTION STATISTIK KOLEKSI (Publik, compact) ===== -->
+  <section class="bg-white py-9 md:py-12 px-6 border-t border-sky-100">
     <div class="max-w-5xl mx-auto reveal">
-      <div class="text-center mb-10">
-        <span class="text-xs font-bold uppercase tracking-wider text-ocean-600 bg-ocean-500/10 px-3.5 py-1.5 rounded-full mb-4 inline-block border border-ocean-500/20">Statistik</span>
-        <h2 class="font-heading font-bold text-2xl md:text-3xl text-navy-900 tracking-tight">Sebaran Koleksi Novel per Genre</h2>
-        <p class="text-slate-500 text-sm mt-3 max-w-xl mx-auto">Gambaran jumlah judul novel yang tersedia di perpustakaan, dikelompokkan berdasarkan genre.</p>
+      <div class="text-center mb-6 md:mb-7">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-ocean-600 bg-ocean-500/10 px-3 py-1 rounded-full mb-3 inline-block">Statistik Koleksi</span>
+        <h2 class="font-heading font-bold text-xl md:text-2xl text-navy-900 tracking-tight">Ringkasan Koleksi Perpustakaan</h2>
+        <p class="text-slate-500 text-xs md:text-sm mt-2 max-w-xl mx-auto">Gambaran singkat jumlah dan sebaran koleksi novel yang tersedia saat ini.</p>
       </div>
 
-      <div class="bg-white rounded-[2rem] border border-slate-200 shadow-card p-6 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center max-w-3xl mx-auto">
-        <div class="relative h-[280px]">
-          <canvas id="chartGenreLanding"></canvas>
+      <!-- Tiga angka kunci -->
+      <div class="grid grid-cols-3 gap-2.5 sm:gap-3.5 max-w-xl mx-auto mb-5 md:mb-6">
+        <div class="text-center bg-sky-50/60 border border-sky-100 rounded-xl px-2 py-3 sm:py-3.5">
+          <div class="font-heading font-extrabold text-lg sm:text-2xl text-navy-900 leading-none"><?= $totalBukuAktif ?></div>
+          <div class="text-[10px] sm:text-xs font-semibold text-slate-500 mt-1">Total Buku</div>
         </div>
-        <div class="flex flex-col gap-2.5" id="genreLegend">
-          <?php foreach ($bukuPerGenre as $genre => $daftar): ?>
-            <div class="flex items-center justify-between text-xs font-semibold text-slate-600 bg-sky-50/50 px-3.5 py-2.5 rounded-xl border border-sky-100">
-              <span><?= htmlspecialchars($genre) ?></span>
-              <span class="text-ocean-600"><?= count($daftar) ?> judul</span>
+        <div class="text-center bg-sky-50/60 border border-sky-100 rounded-xl px-2 py-3 sm:py-3.5">
+          <div class="font-heading font-extrabold text-lg sm:text-2xl text-navy-900 leading-none"><?= $totalGenreAktif ?></div>
+          <div class="text-[10px] sm:text-xs font-semibold text-slate-500 mt-1">Total Genre</div>
+        </div>
+        <div class="text-center bg-sky-50/60 border border-sky-100 rounded-xl px-2 py-3 sm:py-3.5">
+          <?php if ($totalUlasanSemua > 0): ?>
+            <div class="font-heading font-extrabold text-lg sm:text-2xl text-navy-900 leading-none"><?= number_format($rataRatingSemua, 1) ?></div>
+            <div class="text-[10px] sm:text-xs font-semibold text-slate-500 mt-1">Rating (<?= $totalUlasanSemua ?>)</div>
+          <?php else: ?>
+            <div class="font-heading font-extrabold text-sm sm:text-lg text-navy-900 leading-tight line-clamp-1"><?= $genreTerbanyakNama ? htmlspecialchars($genreTerbanyakNama) : '-' ?></div>
+            <div class="text-[10px] sm:text-xs font-semibold text-slate-500 mt-1">Genre Terbanyak</div>
+          <?php endif; ?>
+        </div>
+      </div>
+
+      <!-- Chart compact + breakdown genre -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 md:p-5 grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 items-center max-w-3xl mx-auto">
+        <div class="flex flex-col items-center">
+          <div class="relative h-[180px] w-[180px] md:h-[230px] md:w-[230px]">
+            <canvas id="chartGenreLanding"></canvas>
+          </div>
+          <?php if ($genreTerbanyakNama): ?>
+            <p class="text-[11px] text-slate-400 text-center mt-3 max-w-[220px]">
+              <span class="font-bold text-ocean-600"><?= htmlspecialchars($genreTerbanyakNama) ?></span> menjadi genre dengan koleksi terbanyak, yaitu <span class="font-bold text-navy-900"><?= $genreTerbanyakJumlah ?></span> judul.
+            </p>
+          <?php endif; ?>
+        </div>
+        <div class="flex flex-col gap-1.5" id="genreLegend">
+          <?php foreach ($genreTop5 as $genre => $daftar): ?>
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-600 bg-sky-50/50 px-3 py-2 rounded-lg">
+              <span class="truncate pr-2"><?= htmlspecialchars($genre) ?></span>
+              <span class="text-ocean-600 shrink-0"><?= count($daftar) ?> judul</span>
             </div>
           <?php endforeach; ?>
+          <?php if ($genreSisaCount > 0): ?>
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-400 px-3 py-1.5 italic">
+              <span>+<?= $genreSisaCount ?> genre lainnya</span>
+              <span><?= $genreSisaJumlah ?> judul</span>
+            </div>
+          <?php endif; ?>
           <?php if (!$bukuPerGenre): ?>
             <p class="text-xs text-slate-400 italic">Belum ada data koleksi buku.</p>
           <?php endif; ?>
@@ -748,28 +949,28 @@ function icon($name, $class = 'w-5 h-5') {
   </section>
 
   <!-- ===== TENTANG SECTION ===== -->
-  <section id="tentang" class="bg-navy-900 text-white py-16 px-6 relative overflow-hidden mt-12 scroll-mt-20">
+  <section id="tentang" class="bg-navy-900 text-white py-12 md:py-16 px-6 relative overflow-hidden mt-6 scroll-mt-20">
     <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-navy-800 via-navy-900 to-navy-950 pointer-events-none"></div>
-    <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center relative z-10 reveal">
+    <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 items-center relative z-10 reveal">
       <div>
-        <span class="text-xs font-bold uppercase tracking-wider text-ocean-400 bg-ocean-500/10 px-3.5 py-1.5 rounded-full mb-4 inline-block border border-ocean-500/20">Tentang Layanan</span>
-        <h2 class="font-heading font-extrabold text-2xl md:text-3xl tracking-tight mb-4">Mendukung Budaya Literasi & Membaca Novel</h2>
-        <p class="text-slate-300 text-sm leading-relaxed mb-6">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-ocean-400 bg-ocean-500/10 px-3 py-1 rounded-full mb-3 inline-block">Tentang Layanan</span>
+        <h2 class="font-heading font-extrabold text-xl md:text-2xl tracking-tight mb-3">Mendukung Budaya Literasi & Membaca Novel</h2>
+        <p class="text-slate-300 text-sm leading-relaxed mb-5">
           Perpustakaan Digital Sekolah hadir dengan konsep Modern Marine untuk memudahkan siswa dan staf pengajar dalam mengakses literatur dan koleksi novel berkualitas secara praktis.
         </p>
-        <div class="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-200">
-          <div class="flex items-center gap-2 bg-white/5 px-4 py-3 rounded-2xl border border-white/10"><?= icon('sparkle','w-4 h-4 text-ocean-400') ?> Peminjaman Mudah</div>
-          <div class="flex items-center gap-2 bg-white/5 px-4 py-3 rounded-2xl border border-white/10"><?= icon('book','w-4 h-4 text-ocean-400') ?> Baca di Tempat</div>
+        <div class="flex flex-wrap items-center gap-2.5 text-xs font-semibold text-slate-200">
+          <div class="flex items-center gap-2 bg-white/5 px-3.5 py-2.5 rounded-xl border border-white/10"><?= icon('sparkle','w-4 h-4 text-ocean-400') ?> Peminjaman Mudah</div>
+          <div class="flex items-center gap-2 bg-white/5 px-3.5 py-2.5 rounded-xl border border-white/10"><?= icon('book','w-4 h-4 text-ocean-400') ?> Baca di Tempat</div>
         </div>
       </div>
-      <div class="bg-white/5 border border-white/10 rounded-[1.75rem] p-8 backdrop-blur-xl shadow-2xl">
-        <h3 class="font-heading font-bold text-lg text-white mb-4 flex items-center gap-2"><?= icon('clock','w-5 h-5 text-ocean-400') ?> Jam Operasional Perpustakaan</h3>
-        <ul class="space-y-3 text-sm text-slate-300">
-          <li class="flex justify-between border-b border-white/10 pb-3">
+      <div class="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
+        <h3 class="font-heading font-bold text-base text-white mb-3.5 flex items-center gap-2"><?= icon('clock','w-[18px] h-[18px] text-ocean-400') ?> Jam Operasional Perpustakaan</h3>
+        <ul class="space-y-2.5 text-sm text-slate-300">
+          <li class="flex justify-between border-b border-white/10 pb-2.5">
             <span>Senin – Kamis</span>
             <span class="font-semibold text-white">07:30 - 15:30 WIB</span>
           </li>
-          <li class="flex justify-between border-b border-white/10 pb-3">
+          <li class="flex justify-between border-b border-white/10 pb-2.5">
             <span>Jumat</span>
             <span class="font-semibold text-white">07:30 - 14:00 WIB</span>
           </li>
@@ -783,11 +984,11 @@ function icon($name, $class = 'w-5 h-5') {
   </section>
 
   <!-- ===== FOOTER (Navy Malam / Night Ocean) ===== -->
-  <footer id="kontak" class="bg-navy-950 text-slate-400 pt-16 pb-8 px-6 text-xs border-t border-sky-900/30 scroll-mt-20 relative">
+  <footer id="kontak" class="bg-navy-950 text-slate-400 pt-12 pb-6 px-6 text-xs border-t border-sky-900/30 scroll-mt-20 relative">
     <!-- Garis ombak tipis di bagian atas footer -->
     <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-ocean-500 to-transparent opacity-60"></div>
 
-    <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 mb-12 reveal">
+    <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8 reveal">
 
       <div>
         <div class="flex items-center gap-3 mb-4">
@@ -826,7 +1027,7 @@ function icon($name, $class = 'w-5 h-5') {
 
     </div>
 
-    <div class="max-w-7xl mx-auto pt-8 border-t border-sky-900/20 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+    <div class="max-w-7xl mx-auto pt-5 border-t border-sky-900/20 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
       <div>&copy; 2026 Perpustakaan Digital Sekolah. All Rights Reserved.</div>
       <div>
         <a href="admin/login.php" class="hover:text-ocean-400 transition font-medium inline-flex items-center gap-1.5"><?= icon('login','w-3.5 h-3.5') ?> Administrator Login</a>
@@ -837,167 +1038,205 @@ function icon($name, $class = 'w-5 h-5') {
   <!-- ===== MODAL DETAIL BUKU ===== -->
   <?php foreach ($daftarBuku as $b): ?>
     <div class="overlay" id="modal-<?= $b['id_buku'] ?>">
-      <div class="modal-panel bg-white rounded-[1.75rem] max-w-2xl w-full max-h-[85vh] overflow-hidden relative flex flex-col md:flex-row shadow-2xl border border-slate-100">
+      <div class="book-detail-modal">
         <button onclick="tutupModal('modal-<?= $b['id_buku'] ?>')"
-                class="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-slate-900/70 hover:bg-slate-900 text-white flex items-center justify-center transition shadow-md btn-press">
+                class="book-detail-close" aria-label="Tutup detail buku">
           <?= icon('close','w-4 h-4') ?>
         </button>
 
-        <div class="w-full md:w-[260px] shrink-0 aspect-[3/4] md:aspect-auto bg-slate-100 flex items-center justify-center overflow-hidden">
-          <?php if ($b['cover']): ?>
-            <img class="w-full h-full object-cover" src="uploads/<?= htmlspecialchars($b['cover']) ?>" alt="<?= htmlspecialchars($b['judul']) ?>">
-          <?php else: ?>
-            <span class="text-xs text-slate-400 px-4 text-center">Tanpa Cover</span>
-          <?php endif; ?>
-        </div>
-
-        <div class="p-6 md:p-8 overflow-y-auto flex-1 min-w-0 flex flex-col justify-between">
-          <div>
-            <span class="inline-block text-[11px] font-bold text-ocean-600 bg-ocean-500/10 px-3 py-1 rounded-full mb-3">
-              <?= htmlspecialchars($b['nama_kategori'] ?? 'Lainnya') ?>
-            </span>
-
-            <h2 class="font-heading font-bold text-xl text-navy-900 leading-snug mb-1"><?= htmlspecialchars($b['judul']) ?></h2>
-            <div class="text-sm text-slate-500 font-medium mb-2">Penulis: <?= htmlspecialchars($b['pengarang']) ?></div>
-
-            <?php $r = $ratingPerBuku[$b['id_buku']] ?? null; ?>
-            <div class="rating-summary-box mb-4">
-              <?php if ($r): ?>
-                <span class="rating-score"><?= number_format($r['rata'], 1) ?></span>
-                <span class="flex flex-col gap-0.5">
-                  <?= starsSvg($r['rata'], 15) ?>
-                  <span class="text-[10px] text-slate-400 font-semibold"><?= $r['jumlah'] ?> rating</span>
-                </span>
-              <?php else: ?>
-                <?= starsSvg(0, 15) ?>
-                <span class="text-xs text-slate-400 font-medium">Belum ada rating</span>
-              <?php endif; ?>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3 mb-6 text-xs bg-sky-50/50 p-4 rounded-2xl border border-sky-100">
-              <div><span class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-0.5">Penerbit</span><span class="font-bold text-slate-700"><?= htmlspecialchars($b['penerbit'] ?? '-') ?></span></div>
-              <div><span class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-0.5">Tahun Terbit</span><span class="font-bold text-slate-700"><?= htmlspecialchars($b['tahun_terbit'] ?? '-') ?></span></div>
-              <div><span class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-0.5">Lokasi Rak</span><span class="font-bold text-slate-700"><?= htmlspecialchars($b['lokasi_rak'] ?: '-') ?></span></div>
-              <div>
-                <span class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-0.5">Status Ketersediaan</span>
-                <span class="font-bold text-emerald-700">📚 <?= (int)$b['stok'] ?> Buku Tersedia</span>
-              </div>
-            </div>
-
-            <div class="text-xs leading-relaxed text-slate-600 mb-6">
-              <span class="font-bold text-slate-700 block mb-1">Sinopsis:</span>
-              <?= nl2br(htmlspecialchars($b['deskripsi'] ?: 'Belum ada deskripsi atau sinopsis untuk buku ini.')) ?>
-            </div>
-
-            <!-- ===== INPUT RATING ===== -->
-            <div class="rating-input-card mb-5">
-              <div class="flex items-start justify-between gap-3 mb-3">
-                <div>
-                  <span class="block text-sm font-bold text-navy-900">Berikan Penilaian</span>
-                  <span class="block text-[11px] text-slate-400 mt-0.5">
-                    <?= !empty($idAnggotaLogin) ? 'Nilai 1–5 sesuai pengalaman membaca kamu.' : 'Login sebagai anggota untuk memberikan rating.' ?>
-                  </span>
-                </div>
-                <span class="rating-selected-badge" id="ratingBadge-<?= $b['id_buku'] ?>">
-                  <?php
-                    $trIdBuku = $transaksiRatingPerBuku[$b['id_buku']] ?? null;
-                    $nilaiSaya = $trIdBuku ? ($ratingSayaPerBuku[$trIdBuku] ?? 0) : 0;
-                  ?>
-                  <?= $nilaiSaya ? $nilaiSaya . '/5' : 'Belum dipilih' ?>
-                </span>
-              </div>
-
-              <?php if (!empty($idAnggotaLogin) && $trIdBuku): ?>
-                <form class="rating-form" data-book="<?= (int)$b['id_buku'] ?>">
-                  <input type="hidden" name="csrf" value="<?= htmlspecialchars($ratingCsrf) ?>">
-                  <input type="hidden" name="id_buku" value="<?= (int)$b['id_buku'] ?>">
-                  <input type="hidden" name="nilai" id="ratingValue-<?= $b['id_buku'] ?>" value="<?= (int)$nilaiSaya ?>">
-
-                  <div class="star-input-horizontal" role="radiogroup" aria-label="Pilih rating 1 sampai 5">
-                    <?php for ($star = 1; $star <= 5; $star++): ?>
-                      <button
-                        type="button"
-                        class="rating-star-btn <?= ($star <= $nilaiSaya) ? 'selected' : '' ?>"
-                        data-value="<?= $star ?>"
-                        aria-label="<?= $star ?> dari 5"
-                        aria-checked="<?= $star === $nilaiSaya ? 'true' : 'false' ?>"
-                      >★</button>
-                    <?php endfor; ?>
-                  </div>
-
-                  <div class="rating-help-text" id="ratingHelp-<?= $b['id_buku'] ?>">
-                    <?php
-                      $labelsRating = [
-                        1 => 'Sangat Buruk',
-                        2 => 'Buruk',
-                        3 => 'Cukup',
-                        4 => 'Bagus',
-                        5 => 'Sangat Bagus'
-                      ];
-                      echo $nilaiSaya ? ($nilaiSaya . ' dari 5 — ' . $labelsRating[$nilaiSaya]) : 'Klik bintang untuk memilih rating';
-                    ?>
-                  </div>
-
-                  <button type="submit" class="rating-submit-btn">
-                    Simpan Rating
-                  </button>
-                  <p class="rating-message" id="ratingMessage-<?= $b['id_buku'] ?>" aria-live="polite"></p>
-                </form>
-              <?php elseif (!empty($idAnggotaLogin)): ?>
-                <div class="rating-login-note">
-                  Kamu belum memiliki riwayat peminjaman buku ini. <strong>Pinjam buku terlebih dahulu</strong> agar bisa memberikan rating.
-                </div>
-              <?php else: ?>
-                <a href="siswa/login.php" class="rating-login-note rating-login-link">
-                  Login sebagai anggota untuk memberikan rating →
-                </a>
-              <?php endif; ?>
-            </div>
-
-            <div class="text-xs mb-4">
-              <span class="font-bold text-slate-700 block mb-2">Ulasan Pembaca:</span>
-              <?php $komentarBuku = $komentarPerBuku[$b['id_buku']] ?? []; ?>
-              <?php if ($komentarBuku): ?>
-                <div class="komentar-list">
-                  <?php foreach ($komentarBuku as $k):
-                    $inisial = strtoupper(substr(trim($k['nama_lengkap']), 0, 1)) ?: '?';
-                    $tgl = date('d M Y', strtotime($k['created_at']));
-                  ?>
-                    <div class="komentar-item">
-                      <div class="komentar-avatar"><?= htmlspecialchars($inisial) ?></div>
-                      <div class="komentar-body">
-                        <div class="komentar-head">
-                          <span class="komentar-nama"><?= htmlspecialchars($k['nama_lengkap']) ?></span>
-                          <span class="komentar-tgl"><?= $tgl ?></span>
-                        </div>
-                        <?php if ($k['nilai']): ?>
-                          <div class="mb-1"><?= starsSvg($k['nilai'], 11) ?></div>
-                        <?php endif; ?>
-                        <div class="komentar-isi"><?= nl2br(htmlspecialchars($k['isi_komentar'])) ?></div>
-                      </div>
-                    </div>
-                  <?php endforeach; ?>
-                </div>
-              <?php else: ?>
-                <p class="komentar-kosong">Belum ada ulasan untuk buku ini.</p>
-              <?php endif; ?>
-            </div>
-
-            <?php if (!empty($b['kode_buku'])): ?>
-              <div class="text-[10px] text-slate-400 mb-4 pt-3 border-t border-slate-100">
-                Informasi Tambahan - Kode Buku: <span class="font-mono text-slate-500"><?= htmlspecialchars($b['kode_buku']) ?></span>
-              </div>
+        <!-- ===== KOLOM KIRI: COVER + AKSI ===== -->
+        <div class="book-detail-left">
+          <div class="book-detail-cover">
+            <?php if ($b['cover']): ?>
+              <img src="uploads/<?= htmlspecialchars($b['cover']) ?>" alt="<?= htmlspecialchars($b['judul']) ?>">
+            <?php else: ?>
+              <span class="no-cover">Tanpa Cover</span>
             <?php endif; ?>
           </div>
 
-          <div class="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100">
-            <a href="siswa/login.php" class="flex items-center justify-center gap-2 text-center bg-gradient-to-r from-ocean-600 to-royal-600 hover:from-ocean-500 hover:to-royal-500 text-white text-xs font-bold py-3 px-4 rounded-xl shadow-lg shadow-ocean-500/20 transition btn-press">
+          <div class="book-detail-actions">
+            <a href="siswa/login.php" class="bd-btn bd-btn-primary">
               <?= icon('book','w-4 h-4') ?> Pinjam Buku
             </a>
-            <a href="siswa/login.php" class="flex items-center justify-center gap-2 text-center bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold py-3 px-4 rounded-xl transition btn-press">
+            <a href="siswa/login.php" class="bd-btn bd-btn-secondary">
               <?= icon('book','w-4 h-4') ?> Baca di Tempat
             </a>
           </div>
+        </div>
+
+        <!-- ===== KOLOM KANAN: HERO + KONTEN (SCROLLABLE) ===== -->
+        <div class="book-detail-right">
+
+          <div class="book-detail-hero">
+            <h2 class="bd-title"><?= htmlspecialchars($b['judul']) ?></h2>
+            <div class="bd-author">Penulis · <?= htmlspecialchars($b['pengarang']) ?></div>
+            <div class="bd-badges">
+              <span class="bd-badge"><?= htmlspecialchars($b['nama_kategori'] ?? 'Lainnya') ?></span>
+              <span class="bd-badge bd-badge-status"><span class="dot"></span> <?= (int)$b['stok'] ?> Tersedia</span>
+            </div>
+          </div>
+
+          <div class="book-detail-content">
+            <div class="bd-content-grid">
+
+              <!-- Tentang Buku -->
+              <div class="bd-section bd-area-tentang">
+                <h3 class="bd-heading">Tentang Buku</h3>
+                <div class="bd-desc"><?= nl2br(htmlspecialchars($b['deskripsi'] ?: 'Belum ada deskripsi atau sinopsis untuk buku ini.')) ?></div>
+              </div>
+
+              <!-- Informasi Buku -->
+              <div class="bd-section bd-area-informasi">
+                <h3 class="bd-heading">Informasi Buku</h3>
+                <div class="bd-info-grid">
+                  <div class="bd-info-item">
+                    <span class="bd-info-label">Penulis</span>
+                    <span class="bd-info-value"><?= htmlspecialchars($b['pengarang']) ?></span>
+                  </div>
+                  <?php if (!empty($b['kode_buku'])): ?>
+                  <div class="bd-info-item">
+                    <span class="bd-info-label">Kode Buku</span>
+                    <span class="bd-info-value"><?= htmlspecialchars($b['kode_buku']) ?></span>
+                  </div>
+                  <?php endif; ?>
+                  <div class="bd-info-item">
+                    <span class="bd-info-label">Kategori</span>
+                    <span class="bd-info-value"><?= htmlspecialchars($b['nama_kategori'] ?? 'Lainnya') ?></span>
+                  </div>
+                  <div class="bd-info-item">
+                    <span class="bd-info-label">Penerbit</span>
+                    <span class="bd-info-value"><?= htmlspecialchars($b['penerbit'] ?? '-') ?></span>
+                  </div>
+                  <div class="bd-info-item">
+                    <span class="bd-info-label">Tahun Terbit</span>
+                    <span class="bd-info-value"><?= htmlspecialchars($b['tahun_terbit'] ?? '-') ?></span>
+                  </div>
+                  <div class="bd-info-item">
+                    <span class="bd-info-label">Lokasi Rak</span>
+                    <span class="bd-info-value"><?= htmlspecialchars($b['lokasi_rak'] ?: '-') ?></span>
+                  </div>
+                  <div class="bd-info-item">
+                    <span class="bd-info-label">Status</span>
+                    <span class="bd-status-pill"><span class="dot"></span> <?= (int)$b['stok'] ?> Buku Tersedia</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Ulasan Pembaca (input rating + daftar komentar) -->
+              <div class="bd-section bd-area-ulasan">
+                <h3 class="bd-heading">Ulasan Pembaca</h3>
+
+                <!-- ===== INPUT RATING (fungsi lama dipertahankan) ===== -->
+                <div class="rating-input-card">
+                  <div class="flex items-start justify-between gap-3 mb-1">
+                    <div>
+                      <span class="block text-sm font-bold text-navy-900">Berikan Penilaian</span>
+                      <span class="block text-[11px] text-slate-400 mt-0.5">
+                        <?= !empty($idAnggotaLogin) ? 'Nilai 1–5 sesuai pengalaman membaca kamu.' : 'Login sebagai anggota untuk memberikan rating.' ?>
+                      </span>
+                    </div>
+                    <span class="rating-selected-badge" id="ratingBadge-<?= $b['id_buku'] ?>">
+                      <?php
+                        $trIdBuku = $transaksiRatingPerBuku[$b['id_buku']] ?? null;
+                        $nilaiSaya = $trIdBuku ? ($ratingSayaPerBuku[$trIdBuku] ?? 0) : 0;
+                      ?>
+                      <?= $nilaiSaya ? $nilaiSaya . '/5' : 'Belum dipilih' ?>
+                    </span>
+                  </div>
+
+                  <?php if (!empty($idAnggotaLogin) && $trIdBuku): ?>
+                    <form class="rating-form" data-book="<?= (int)$b['id_buku'] ?>">
+                      <input type="hidden" name="csrf" value="<?= htmlspecialchars($ratingCsrf) ?>">
+                      <input type="hidden" name="id_buku" value="<?= (int)$b['id_buku'] ?>">
+                      <input type="hidden" name="nilai" id="ratingValue-<?= $b['id_buku'] ?>" value="<?= (int)$nilaiSaya ?>">
+
+                      <div class="star-input-horizontal" role="radiogroup" aria-label="Pilih rating 1 sampai 5">
+                        <?php for ($star = 1; $star <= 5; $star++): ?>
+                          <button
+                            type="button"
+                            class="rating-star-btn <?= ($star <= $nilaiSaya) ? 'selected' : '' ?>"
+                            data-value="<?= $star ?>"
+                            aria-label="<?= $star ?> dari 5"
+                            aria-checked="<?= $star === $nilaiSaya ? 'true' : 'false' ?>"
+                          >★</button>
+                        <?php endfor; ?>
+                      </div>
+
+                      <div class="rating-help-text" id="ratingHelp-<?= $b['id_buku'] ?>">
+                        <?php
+                          $labelsRating = [
+                            1 => 'Sangat Buruk',
+                            2 => 'Buruk',
+                            3 => 'Cukup',
+                            4 => 'Bagus',
+                            5 => 'Sangat Bagus'
+                          ];
+                          echo $nilaiSaya ? ($nilaiSaya . ' dari 5 — ' . $labelsRating[$nilaiSaya]) : 'Klik bintang untuk memilih rating';
+                        ?>
+                      </div>
+
+                      <button type="submit" class="rating-submit-btn">
+                        Simpan Rating
+                      </button>
+                      <p class="rating-message" id="ratingMessage-<?= $b['id_buku'] ?>" aria-live="polite"></p>
+                    </form>
+                  <?php elseif (!empty($idAnggotaLogin)): ?>
+                    <div class="rating-login-note">
+                      Kamu belum memiliki riwayat peminjaman buku ini. <strong>Pinjam buku terlebih dahulu</strong> agar bisa memberikan rating.
+                    </div>
+                  <?php else: ?>
+                    <a href="siswa/login.php" class="rating-login-note rating-login-link">
+                      Login sebagai anggota untuk memberikan rating →
+                    </a>
+                  <?php endif; ?>
+                </div>
+
+                <?php $komentarBuku = $komentarPerBuku[$b['id_buku']] ?? []; ?>
+                <?php if ($komentarBuku): ?>
+                  <div class="komentar-list">
+                    <?php foreach ($komentarBuku as $k):
+                      $inisial = strtoupper(substr(trim($k['nama_lengkap']), 0, 1)) ?: '?';
+                      $tgl = date('d M Y', strtotime($k['created_at']));
+                    ?>
+                      <div class="komentar-item">
+                        <div class="komentar-avatar"><?= htmlspecialchars($inisial) ?></div>
+                        <div class="komentar-body">
+                          <div class="komentar-head">
+                            <span class="komentar-nama"><?= htmlspecialchars($k['nama_lengkap']) ?></span>
+                            <span class="komentar-tgl"><?= $tgl ?></span>
+                          </div>
+                          <?php if ($k['nilai']): ?>
+                            <div class="mb-1"><?= starsSvg($k['nilai'], 11) ?></div>
+                          <?php endif; ?>
+                          <div class="komentar-isi"><?= nl2br(htmlspecialchars($k['isi_komentar'])) ?></div>
+                        </div>
+                      </div>
+                    <?php endforeach; ?>
+                  </div>
+                <?php else: ?>
+                  <p class="komentar-kosong">Belum ada ulasan untuk buku ini.</p>
+                <?php endif; ?>
+              </div>
+
+              <!-- Rating -->
+              <div class="bd-section bd-area-rating">
+                <h3 class="bd-heading">Rating Buku</h3>
+                <?php $r = $ratingPerBuku[$b['id_buku']] ?? null; ?>
+                <div class="bd-rating-box">
+                  <?php if ($r): ?>
+                    <div class="bd-rating-score"><?= number_format($r['rata'], 1) ?></div>
+                    <?= starsSvg($r['rata'], 18) ?>
+                    <div class="bd-rating-count"><?= $r['jumlah'] ?> ulasan</div>
+                  <?php else: ?>
+                    <?= starsSvg(0, 18) ?>
+                    <div class="bd-rating-count">Belum ada rating</div>
+                  <?php endif; ?>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -1005,14 +1244,14 @@ function icon($name, $class = 'w-5 h-5') {
 
   <!-- ===== FLOATING HELP / BANTUAN ===== -->
   <a href="bantuan.php"
-     class="fixed bottom-5 right-5 sm:bottom-7 sm:right-7 z-40 group flex items-center gap-2.5
-            bg-gradient-to-r from-ocean-600 to-royal-600 hover:from-ocean-500 hover:to-royal-500
-            text-white font-bold text-xs sm:text-sm px-4 sm:px-5 py-3.5 rounded-2xl
-            shadow-xl shadow-ocean-500/25 border border-white/20
-            transition-all duration-300 hover:-translate-y-1 btn-press"
+     class="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-40 group flex items-center gap-2
+            bg-ocean-600 hover:bg-ocean-500
+            text-white font-semibold text-xs sm:text-[13px] px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl
+            shadow-md shadow-ocean-500/20
+            transition-all duration-300 hover:-translate-y-0.5 btn-press"
      aria-label="Buka halaman bantuan">
-    <span class="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-      <?= icon('help', 'w-[17px] h-[17px]') ?>
+    <span class="w-6 h-6 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+      <?= icon('help', 'w-[14px] h-[14px]') ?>
     </span>
     <span class="hidden sm:inline">Butuh Bantuan?</span>
   </a>

@@ -160,6 +160,7 @@ if ($id_rate) {
             <td data-label="Aksi">
               <form method="POST" action="proses_kembali.php" onsubmit="return confirm('Kembalikan buku ini?<?= $telat ? " Denda: Rp" . number_format($denda, 0, ',', '.') : '' ?>')" style="margin:0;">
                 <input type="hidden" name="id_transaksi" value="<?= $p['id_transaksi'] ?>">
+                <?= csrfField() ?>
                 <button type="submit" class="btn">Kembalikan</button>
               </form>
             </td>
