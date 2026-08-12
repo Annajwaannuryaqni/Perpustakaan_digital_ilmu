@@ -32,3 +32,10 @@ function requireSiswa() {
         exit;
     }
 }
+
+function requirePetugas() {
+    if (!isset($_SESSION['petugas_id'])) {
+        header('Location: login.php');
+        exit;
+    }
+}

@@ -11,6 +11,9 @@ if (isset($_SESSION['admin_id'])) {
 } elseif (isset($_SESSION['anggota_id'])) {
     $user_id   = $_SESSION['anggota_id'];
     $user_type = 'anggota';
+} elseif (isset($_SESSION['petugas_id'])) {
+    $user_id   = $_SESSION['petugas_id'];
+    $user_type = 'petugas';
 } else {
     echo json_encode([
         'status' => 'error',

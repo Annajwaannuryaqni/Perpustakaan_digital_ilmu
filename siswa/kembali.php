@@ -18,6 +18,19 @@ $stmt = $koneksi->prepare("
 $stmt->execute([$id_anggota]);
 $daftarPinjaman = $stmt->fetchAll();
 
+// Ringkasan untuk summary card (dihitung dari data yang sama di atas, bukan query/data baru)
+$totalDipinjam = count($daftarPinjaman);
+$totalTerlambat = 0;
+$totalDendaKeseluruhan = 0;
+foreach ($daftarPinjaman as $p) {
+    $hariIniHitung = strtotime(date('Y-m-d'));
+    $jatuhTempoHitung = strtotime($p['tanggal_jatuh_tempo']);
+    if ($hariIniHitung > $jatuhTempoHitung) {
+        $totalTerlambat++;
+        $totalDendaKeseluruhan += floor(($hariIniHitung - $jatuhTempoHitung) / 86400) * TARIF_DENDA_PER_HARI;
+    }
+}
+
 // Buku yang baru saja dikembalikan, untuk ditawari rating & komentar
 $bukuUntukRating = null;
 $id_rate = $_GET['rate'] ?? null;
@@ -39,13 +52,38 @@ if ($id_rate) {
 <title>Pengembalian Buku</title>
 <link rel="stylesheet" href="../assets/style.css">
 </head>
-<body>
+<body class="admin-page">
+  <?php $activeMenu = 'kembali'; require '../includes/siswa_sidebar.php'; ?>
   <div class="topbar">
-    <h1> Pengembalian Buku</h1>
+    <h1>Pengembalian &amp; Riwayat Peminjaman</h1>
   </div>
 
   <div class="container">
-    <a href="dashboard.php" class="back-link">&larr; Kembali ke Dashboard</a>
+    <div class="section-header" style="margin-top:18px;">
+      <h1>Pengembalian Buku</h1>
+      <p>Kelola buku yang sedang kamu pinjam dan periksa status pengembaliannya.</p>
+    </div>
+
+    <div class="stat-mini-grid">
+      <div class="stat-mini">
+        <span class="ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h11a1 1 0 0 1 1 1v14"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H19"/></svg>
+        </span>
+        <div><strong><?= $totalDipinjam ?></strong><span>Total Buku Dipinjam</span></div>
+      </div>
+      <div class="stat-mini warn">
+        <span class="ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><polyline points="12 7 12 12 15.5 14"/></svg>
+        </span>
+        <div><strong><?= $totalTerlambat ?></strong><span>Buku Terlambat</span></div>
+      </div>
+      <div class="stat-mini danger">
+        <span class="ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </span>
+        <div><strong>Rp<?= number_format($totalDendaKeseluruhan, 0, ',', '.') ?></strong><span>Total Denda</span></div>
+      </div>
+    </div>
 
     <?php if ($pesan === 'sukses' && !$bukuUntukRating): ?>
       <p class="alert alert-sukses">Buku berhasil dikembalikan. Terima kasih!</p>
@@ -55,7 +93,7 @@ if ($id_rate) {
 
     <?php if ($bukuUntukRating): ?>
       <div class="card rating-card">
-        <h3 style="margin-top:0;">Buku berhasil dikembalikan 🎉</h3>
+        <h3 style="margin-top:0;">Buku berhasil dikembalikan</h3>
         <p style="color:var(--muted); margin-top:-8px;">
           Beri rating &amp; ulasan singkat untuk "<strong><?= htmlspecialchars($bukuUntukRating['judul']) ?></strong>"
           karya <?= htmlspecialchars($bukuUntukRating['pengarang']) ?> (opsional, tapi sangat membantu siswa lain).
@@ -173,5 +211,6 @@ if ($id_rate) {
       </table>
     </div>
   </div>
+</main>
 </body>
 </html>

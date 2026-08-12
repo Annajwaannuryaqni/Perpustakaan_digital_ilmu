@@ -139,7 +139,8 @@ function siswaIcon($name, $class = 'ic') {
   }
 </style>
 </head>
-<body>
+<body class="admin-page">
+  <?php $activeMenu = 'dashboard'; require_once '../includes/siswa_sidebar.php'; ?>
 
   <div class="container">
     <div class="page-head">
@@ -273,16 +274,6 @@ function siswaIcon($name, $class = 'ic') {
       </div>
     </div>
     <?php endif; ?>
-
-    <!-- Aksi Cepat -->
-    <div class="card quick-actions">
-      <a href="pinjam.php" class="btn"><?= siswaIcon('book') ?> Peminjaman Buku</a>
-      <a href="kembali.php" class="btn btn-outline"><?= siswaIcon('repeat') ?> Pengembalian Buku</a>
-      <a href="presensi.php" class="btn btn-outline"><?= siswaIcon('presensi') ?> Presensi Kunjungan</a>
-      <a href="logout.php" class="btn btn-danger"><?= siswaIcon('logout') ?> Logout</a>
-    </div>
-  </div>
-
   <script src="../assets/js/notification.js"></script>
   <?php
 if (isset($_SESSION['flash_notif'])):
@@ -303,5 +294,6 @@ window.addEventListener("load", function () {
 });
 </script>
 <?php endif; ?>
+</main>
 </body>
 </html>

@@ -3,141 +3,203 @@ require_once '../includes/auth.php';
 requireSiswa();
 require_once '../config/database.php';
 
-$id_anggota = $_SESSION['anggota_id'];
-$id_buku = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+$pesan = $_GET['pesan'] ?? '';
+$keyword = trim($_GET['q'] ?? '');
 
-if (!$id_buku) {
-    header('Location: pinjam.php');
-    exit;
+if ($keyword !== '') {
+    $stmt = $koneksi->prepare("
+        SELECT b.*, k.nama_kategori
+        FROM buku b
+        LEFT JOIN kategori k ON k.id_kategori = b.id_kategori
+        WHERE b.stok > 0
+          AND (b.judul LIKE :kw OR b.pengarang LIKE :kw OR k.nama_kategori LIKE :kw)
+        ORDER BY k.nama_kategori ASC, b.judul ASC
+    ");
+    $stmt->execute(['kw' => '%' . $keyword . '%']);
+    $daftarBuku = $stmt->fetchAll();
+} else {
+    $daftarBuku = $koneksi->query("
+        SELECT b.*, k.nama_kategori
+        FROM buku b
+        LEFT JOIN kategori k ON k.id_kategori = b.id_kategori
+        WHERE b.stok > 0
+        ORDER BY k.nama_kategori ASC, b.judul ASC
+    ")->fetchAll();
 }
 
-// Ambil data buku terbaru dari database (bukan dari input siswa)
-$stmt = $koneksi->prepare("
-    SELECT b.*, k.nama_kategori
-    FROM buku b
-    LEFT JOIN kategori k ON k.id_kategori = b.id_kategori
-    WHERE b.id_buku = ?
-");
-$stmt->execute([$id_buku]);
-$buku = $stmt->fetch();
-
-if (!$buku) {
-    header('Location: pinjam.php');
-    exit;
+// Kelompokkan buku per genre untuk ditampilkan sebagai seksi terpisah
+$bukuPerGenre = [];
+foreach ($daftarBuku as $b) {
+    $genre = $b['nama_kategori'] ?: 'Lainnya';
+    $bukuPerGenre[$genre][] = $b;
 }
-
-// Data peminjam berasal dari sesi yang sedang login, bukan input manual
-$stmtAnggota = $koneksi->prepare("SELECT nama_lengkap, nis, kelas FROM anggota WHERE id_anggota = ?");
-$stmtAnggota->execute([$id_anggota]);
-$anggota = $stmtAnggota->fetch();
-
-$tanggalPinjamPreview = date('Y-m-d');
-$jatuhTempoPreview = date('Y-m-d', strtotime('+7 days'));
-$tersedia = (int)$buku['stok'] > 0;
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Konfirmasi Peminjaman</title>
+<title>Peminjaman Buku</title>
 <link rel="stylesheet" href="../assets/style.css">
-<style>
-  .confirm-wrap { max-width: 640px; margin: 0 auto; }
-  .confirm-section { border-top: 1px solid var(--border); padding-top: 18px; margin-top: 18px; }
-  .confirm-section:first-child { border-top: none; padding-top: 0; margin-top: 0; }
-  .confirm-section h4 {
-    font-size: .78rem; text-transform: uppercase; letter-spacing: .05em;
-    color: var(--muted); margin: 0 0 12px; font-weight: 700;
-  }
-  .book-row { display: flex; gap: 16px; align-items: center; }
-  .book-row img, .book-row .no-cover-box {
-    width: 64px; height: 86px; object-fit: cover; border-radius: 8px;
-    box-shadow: var(--shadow-card); flex-shrink: 0; background: var(--slate-100);
-  }
-  .book-row .no-cover-box { display: flex; align-items: center; justify-content: center; font-size: .65rem; color: var(--muted); text-align: center; }
-  .book-row .book-title { font-weight: 700; color: var(--navy); font-size: 1rem; }
-  .book-row .book-meta { font-size: .82rem; color: var(--muted); margin-top: 2px; }
-  .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; font-size: .88rem; }
-  .kv-grid div span { display: block; color: var(--muted); font-size: .72rem; margin-bottom: 2px; }
-  .confirm-actions { display: flex; gap: 12px; margin-top: 24px; }
-  .confirm-actions form, .confirm-actions a { flex: 1; }
-  .confirm-actions .btn, .confirm-actions .btn-outline { width: 100%; }
-</style>
 </head>
-<body>
-  <div class="topbar"><h1>Konfirmasi Peminjaman</h1></div>
+<body class="admin-page">
+  <?php $activeMenu = 'pinjam'; require '../includes/siswa_sidebar.php'; ?>
+  <div class="topbar">
+    <h1>Katalog &amp; Peminjaman Buku</h1>
+  </div>
 
-  <div class="container confirm-wrap">
+  <div class="container">
+    <?php if ($pesan === 'sukses'): ?>
+      <p class="alert alert-sukses">Peminjaman berhasil! Jangan lupa kembalikan tepat waktu.</p>
+    <?php elseif ($pesan === 'gagal'): ?>
+      <p class="alert alert-gagal">Peminjaman gagal, stok buku mungkin sudah habis.</p>
+    <?php endif; ?>
+
+    <div class="section-header">
+      <h1>Katalog Buku</h1>
+      <p>Temukan dan pinjam buku yang kamu butuhkan.</p>
+    </div>
+
     <div class="card">
-      <div class="confirm-section">
-        <h4>Data Buku</h4>
-        <div class="book-row">
-          <?php if ($buku['cover']): ?>
-            <img src="../uploads/<?= htmlspecialchars($buku['cover']) ?>" alt="">
-          <?php else: ?>
-            <div class="no-cover-box">Tanpa cover</div>
+      <form method="GET" action="pinjam.php" class="search-hero">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" name="q" placeholder="Cari judul, pengarang, atau kategori..."
+               value="<?= htmlspecialchars($keyword) ?>">
+        <div class="search-hero-actions">
+          <?php if ($keyword !== ''): ?>
+            <a href="pinjam.php" class="btn-reset">Reset</a>
           <?php endif; ?>
-          <div>
-            <div class="book-title"><?= htmlspecialchars($buku['judul']) ?></div>
-            <div class="book-meta">oleh <?= htmlspecialchars($buku['pengarang']) ?></div>
-            <div class="book-meta"><?= htmlspecialchars($buku['nama_kategori'] ?? 'Lainnya') ?></div>
-            <div style="margin-top:6px;">
-              <?php if ($tersedia): ?>
-                <span class="badge badge-ok">Tersedia (<?= (int)$buku['stok'] ?> stok)</span>
-              <?php else: ?>
-                <span class="badge badge-habis">Tidak Tersedia</span>
-              <?php endif; ?>
-            </div>
-          </div>
+          <button type="submit" class="btn">Cari</button>
         </div>
-      </div>
+      </form>
 
-      <div class="confirm-section">
-        <h4>Data Peminjam</h4>
-        <div class="kv-grid">
-          <div><span>Nama</span><?= htmlspecialchars($anggota['nama_lengkap']) ?></div>
-          <div><span>ID Anggota (NIS)</span><?= htmlspecialchars($anggota['nis']) ?></div>
-          <div><span>Kelas</span><?= htmlspecialchars($anggota['kelas'] ?: '-') ?></div>
-        </div>
-      </div>
-
-      <?php if ($tersedia): ?>
-      <div class="confirm-section">
-        <h4>Detail Peminjaman</h4>
-        <div class="kv-grid">
-          <div><span>Tanggal Peminjaman</span><?= htmlspecialchars($tanggalPinjamPreview) ?></div>
-          <div><span>Tanggal Jatuh Tempo</span><?= htmlspecialchars($jatuhTempoPreview) ?></div>
-        </div>
+      <?php if ($bukuPerGenre): ?>
+      <div class="category-chips">
+        <span class="category-chip active">
+          Semua Genre <span class="count">(<?= count($daftarBuku) ?> buku)</span>
+        </span>
+        <?php foreach ($bukuPerGenre as $genre => $daftar): ?>
+          <a href="#genre-<?= md5($genre) ?>" class="category-chip">
+            <?= htmlspecialchars($genre) ?> <span class="count">(<?= count($daftar) ?>)</span>
+          </a>
+        <?php endforeach; ?>
       </div>
       <?php endif; ?>
 
-      <div class="confirm-actions">
-        <a href="pinjam.php" class="btn-outline btn">Batalkan</a>
-        <?php if ($tersedia): ?>
-          <form method="POST" action="proses_pinjam.php" id="formKonfirmasi">
-            <?= csrfField() ?>
-            <input type="hidden" name="id_buku" value="<?= $buku['id_buku'] ?>">
-            <button type="submit" class="btn" id="btnKonfirmasi">Konfirmasi Peminjaman</button>
-          </form>
-        <?php else: ?>
-          <button class="btn" disabled style="opacity:.5; cursor:not-allowed;">Tidak Tersedia</button>
-        <?php endif; ?>
-      </div>
-    </div>
+      <?php if (!$daftarBuku): ?>
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <strong>Buku tidak ditemukan</strong>
+          <span><?= $keyword !== ''
+              ? 'Tidak ada buku yang cocok dengan "' . htmlspecialchars($keyword) . '"'
+              : 'Tidak ada buku yang tersedia saat ini' ?></span>
+        </div>
+      <?php else: ?>
+        <?php foreach ($bukuPerGenre as $genre => $daftar): ?>
+          <div class="genre-section" id="genre-<?= md5($genre) ?>">
+            <div class="genre-title">
+              <?= htmlspecialchars($genre) ?>
+              <span class="count"><?= count($daftar) ?> buku</span>
+            </div>
 
-    <a href="pinjam.php" class="back-link" style="display:block; margin-top:20px; text-align:center;">&larr; Kembali ke Katalog</a>
+            <div class="book-grid">
+              <?php foreach ($daftar as $b): ?>
+                <div class="book-card" onclick="bukaModal('modal-<?= $b['id_buku'] ?>')">
+                  <div class="cover-wrap">
+                    <?php if ($b['cover']): ?>
+                      <img src="../uploads/<?= htmlspecialchars($b['cover']) ?>" alt="<?= htmlspecialchars($b['judul']) ?>">
+                    <?php else: ?>
+                      <span class="no-cover">(belum ada cover)</span>
+                    <?php endif; ?>
+                  </div>
+                  <div class="info">
+                    <div class="judul"><?= htmlspecialchars($b['judul']) ?></div>
+                    <div class="pengarang"><?= htmlspecialchars($b['pengarang']) ?></div>
+                    <div class="baris-bawah">
+                      <span class="badge badge-ok"><?= (int)$b['stok'] ?> stok</span>
+                      <a href="pinjam_konfirmasi.php?id=<?= $b['id_buku'] ?>" class="btn" onclick="event.stopPropagation()">Pinjam</a>
+                    </div>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      <?php endif; ?>
+    </div>
   </div>
 
+  <!-- ===== MODAL DETAIL (satu per buku) ===== -->
+  <?php foreach ($daftarBuku as $b): ?>
+    <div class="modal-overlay" id="modal-<?= $b['id_buku'] ?>">
+      <div class="modal-book">
+        <button class="close-btn" onclick="tutupModal('modal-<?= $b['id_buku'] ?>')" aria-label="Tutup">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+
+        <div class="cover-wrap">
+          <?php if ($b['cover']): ?>
+            <img class="modal-cover" src="../uploads/<?= htmlspecialchars($b['cover']) ?>" alt="<?= htmlspecialchars($b['judul']) ?>">
+          <?php else: ?>
+            <span class="no-cover">(belum ada cover)</span>
+          <?php endif; ?>
+        </div>
+
+        <div class="modal-body">
+          <h2><?= htmlspecialchars($b['judul']) ?></h2>
+          <div class="modal-pengarang">oleh <?= htmlspecialchars($b['pengarang']) ?></div>
+
+          <div class="meta-grid">
+            <div><span>Genre</span><strong><?= htmlspecialchars($b['nama_kategori'] ?? '-') ?></strong></div>
+            <div><span>Kode Buku</span><strong><?= htmlspecialchars($b['kode_buku'] ?? '-') ?></strong></div>
+            <div><span>Penerbit</span><strong><?= htmlspecialchars($b['penerbit'] ?? '-') ?></strong></div>
+            <div><span>Tahun Terbit</span><strong><?= htmlspecialchars($b['tahun_terbit'] ?? '-') ?></strong></div>
+            <div><span>Lokasi Rak</span><strong><?= htmlspecialchars($b['lokasi_rak'] ?? '-') ?></strong></div>
+            <div><span>Stok</span><strong><?= (int)$b['stok'] ?> tersedia</strong></div>
+          </div>
+
+          <div class="deskripsi"><?= nl2br(htmlspecialchars($b['deskripsi'] ?? '-')) ?></div>
+
+          <div class="modal-footer">
+            <?php if ((int)$b['stok'] > 0): ?>
+              <a href="pinjam_konfirmasi.php?id=<?= $b['id_buku'] ?>" class="btn">Pinjam Buku Ini</a>
+            <?php else: ?>
+              <span class="badge badge-habis">Tidak Tersedia</span>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+    </div>
+  <?php endforeach; ?>
+
   <script>
-    // Cegah submit ganda akibat klik berkali-kali
-    var formKonfirmasi = document.getElementById('formKonfirmasi');
-    if (formKonfirmasi) {
-      formKonfirmasi.addEventListener('submit', function () {
-        document.getElementById('btnKonfirmasi').disabled = true;
-        document.getElementById('btnKonfirmasi').textContent = 'Memproses...';
+  function bukaModal(id){
+    document.getElementById(id).classList.add('show');
+    document.body.style.overflow='hidden';
+  }
+  function tutupModal(id){
+    document.getElementById(id).classList.remove('show');
+    document.body.style.overflow='';
+  }
+  document.querySelectorAll('.modal-overlay').forEach(function(ov){
+    ov.addEventListener('click', function(e){
+      if(e.target === ov){
+        ov.classList.remove('show');
+        document.body.style.overflow='';
+      }
+    });
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape'){
+      document.querySelectorAll('.modal-overlay.show').forEach(function(ov){
+        ov.classList.remove('show');
       });
+      document.body.style.overflow='';
     }
+  });
   </script>
+</main>
 </body>
 </html>

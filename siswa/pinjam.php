@@ -41,88 +41,9 @@ foreach ($daftarBuku as $b) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Peminjaman Buku</title>
 <link rel="stylesheet" href="../assets/style.css">
-<style>
-  /* ===== Halaman peminjaman: card per genre + modal detail ===== */
-  .genre-section{margin-bottom:36px;}
-  .genre-title{
-    display:flex;align-items:center;gap:10px;
-    font-size:1.1rem;font-weight:700;color:#173a7a;
-    margin:0 0 14px;
-  }
-  .genre-title .count{
-    background:#dbeafe;color:#173a7a;
-    font-size:.75rem;font-weight:700;
-    padding:3px 10px;border-radius:999px;
-  }
-  .buku-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
-    gap:18px;
-  }
-  .buku-item{
-    background:#fff;border-radius:14px;overflow:hidden;
-    box-shadow:0 2px 10px rgba(23,58,122,.08);
-    display:flex;flex-direction:column;cursor:pointer;
-    transition:transform .15s ease, box-shadow .15s ease;
-  }
-  .buku-item:hover{transform:translateY(-4px);box-shadow:0 10px 22px rgba(23,58,122,.16);}
-  .buku-item .cover-wrap{
-    width:100%;aspect-ratio:3/4;background:#e5edfb;
-    display:flex;align-items:center;justify-content:center;
-    overflow:hidden;
-  }
-  .buku-item .cover-wrap img{width:100%;height:100%;object-fit:cover;}
-  .buku-item .cover-wrap .no-cover{font-size:.78rem;color:#7d8bab;}
-  .buku-item .info{padding:12px 14px;display:flex;flex-direction:column;gap:5px;flex:1;}
-  .buku-item .judul{font-weight:700;font-size:.95rem;line-height:1.3;color:#1e2a4a;}
-  .buku-item .pengarang{font-size:.82rem;color:#64748b;}
-  .buku-item .baris-bawah{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:8px;}
-  .buku-item form{margin:0;}
-  .buku-item .btn{padding:7px 12px;font-size:.82rem;}
-  .empty-state{text-align:center;padding:50px 20px;color:#64748b;}
-
-  /* modal */
-  .overlay{
-    display:none;position:fixed;inset:0;z-index:100;
-    background:rgba(15,26,55,.55);
-    align-items:center;justify-content:center;padding:20px;
-  }
-  .overlay.show{display:flex;}
-  .modal-buku{
-    background:#fff;border-radius:18px;max-width:700px;width:100%;
-    max-height:88vh;min-height:340px;position:relative;
-    display:flex;overflow:hidden;
-  }
-  .modal-buku .cover-wrap{
-    flex:0 0 200px;align-self:stretch;overflow:hidden;
-    height:auto;aspect-ratio:auto;
-    background:#e5edfb;display:flex;align-items:center;justify-content:center;
-  }
-  .modal-buku .modal-cover{
-    width:100%;height:100%;object-fit:contain;display:block;
-  }
-  .modal-buku .modal-body{padding:24px 26px;overflow-y:auto;flex:1;min-width:0;}
-  .modal-buku .close-btn{
-    position:absolute;top:12px;right:14px;
-    background:rgba(0,0,0,.35);color:#fff;border:none;
-    border-radius:50%;width:28px;height:28px;cursor:pointer;z-index:2;
-  }
-  .modal-buku h2{margin:0 0 4px;font-size:1.25rem;color:#1e2a4a;}
-  .modal-buku .modal-pengarang{color:#64748b;margin-bottom:14px;}
-  .modal-buku .meta-grid{
-    display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;
-    margin-bottom:14px;font-size:.86rem;
-  }
-  .modal-buku .meta-grid div span{display:block;color:#64748b;font-size:.72rem;}
-  .modal-buku .deskripsi{font-size:.9rem;line-height:1.6;color:#1e2a4a;}
-  .modal-buku .modal-footer{margin-top:18px;display:flex;justify-content:flex-end;}
-  @media (max-width:600px){
-    .modal-buku{flex-direction:column;max-height:92vh;}
-    .modal-buku .cover-wrap{flex:0 0 200px;width:100%;}
-  }
-</style>
 </head>
-<body>
+<body class="admin-page">
+  <?php $activeMenu = 'pinjam'; require '../includes/siswa_sidebar.php'; ?>
   <div class="topbar">
     <h1>Katalog &amp; Peminjaman Buku</h1>
   </div>
@@ -134,33 +55,58 @@ foreach ($daftarBuku as $b) {
       <p class="alert alert-gagal">Peminjaman gagal, stok buku mungkin sudah habis.</p>
     <?php endif; ?>
 
+    <div class="section-header">
+      <h1>Katalog Buku</h1>
+      <p>Temukan dan pinjam buku yang kamu butuhkan.</p>
+    </div>
+
     <div class="card">
-      <form method="GET" action="pinjam.php" class="search-form">
-        <input type="text" name="q" placeholder="Cari judul, pengarang, atau genre..."
+      <form method="GET" action="pinjam.php" class="search-hero">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" name="q" placeholder="Cari judul, pengarang, atau kategori..."
                value="<?= htmlspecialchars($keyword) ?>">
-        <button type="submit" class="btn">Cari</button>
-        <?php if ($keyword !== ''): ?>
-          <a href="pinjam.php" class="back-link">✕ Reset</a>
-        <?php endif; ?>
+        <div class="search-hero-actions">
+          <?php if ($keyword !== ''): ?>
+            <a href="pinjam.php" class="btn-reset">Reset</a>
+          <?php endif; ?>
+          <button type="submit" class="btn">Cari</button>
+        </div>
       </form>
+
+      <?php if ($bukuPerGenre): ?>
+      <div class="category-chips">
+        <span class="category-chip active">
+          Semua Genre <span class="count">(<?= count($daftarBuku) ?> buku)</span>
+        </span>
+        <?php foreach ($bukuPerGenre as $genre => $daftar): ?>
+          <a href="#genre-<?= md5($genre) ?>" class="category-chip">
+            <?= htmlspecialchars($genre) ?> <span class="count">(<?= count($daftar) ?>)</span>
+          </a>
+        <?php endforeach; ?>
+      </div>
+      <?php endif; ?>
 
       <?php if (!$daftarBuku): ?>
         <div class="empty-state">
-          <?= $keyword !== ''
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <strong>Buku tidak ditemukan</strong>
+          <span><?= $keyword !== ''
               ? 'Tidak ada buku yang cocok dengan "' . htmlspecialchars($keyword) . '"'
-              : 'Tidak ada buku yang tersedia saat ini' ?>
+              : 'Tidak ada buku yang tersedia saat ini' ?></span>
         </div>
       <?php else: ?>
         <?php foreach ($bukuPerGenre as $genre => $daftar): ?>
-          <div class="genre-section">
+          <div class="genre-section" id="genre-<?= md5($genre) ?>">
             <div class="genre-title">
               <?= htmlspecialchars($genre) ?>
               <span class="count"><?= count($daftar) ?> buku</span>
             </div>
 
-            <div class="buku-grid">
+            <div class="book-grid">
               <?php foreach ($daftar as $b): ?>
-                <div class="buku-item" onclick="bukaModal('modal-<?= $b['id_buku'] ?>')">
+                <div class="book-card" onclick="bukaModal('modal-<?= $b['id_buku'] ?>')">
                   <div class="cover-wrap">
                     <?php if ($b['cover']): ?>
                       <img src="../uploads/<?= htmlspecialchars($b['cover']) ?>" alt="<?= htmlspecialchars($b['judul']) ?>">
@@ -183,15 +129,15 @@ foreach ($daftarBuku as $b) {
         <?php endforeach; ?>
       <?php endif; ?>
     </div>
-
-    <a href="dashboard.php" class="back-link">&larr; Kembali ke Dashboard</a>
   </div>
 
   <!-- ===== MODAL DETAIL (satu per buku) ===== -->
   <?php foreach ($daftarBuku as $b): ?>
-    <div class="overlay" id="modal-<?= $b['id_buku'] ?>">
-      <div class="modal-buku">
-        <button class="close-btn" onclick="tutupModal('modal-<?= $b['id_buku'] ?>')">✕</button>
+    <div class="modal-overlay" id="modal-<?= $b['id_buku'] ?>">
+      <div class="modal-book">
+        <button class="close-btn" onclick="tutupModal('modal-<?= $b['id_buku'] ?>')" aria-label="Tutup">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
 
         <div class="cover-wrap">
           <?php if ($b['cover']): ?>
@@ -206,12 +152,12 @@ foreach ($daftarBuku as $b) {
           <div class="modal-pengarang">oleh <?= htmlspecialchars($b['pengarang']) ?></div>
 
           <div class="meta-grid">
-            <div><span>Genre</span><?= htmlspecialchars($b['nama_kategori'] ?? '-') ?></div>
-            <div><span>Kode Buku</span><?= htmlspecialchars($b['kode_buku'] ?? '-') ?></div>
-            <div><span>Penerbit</span><?= htmlspecialchars($b['penerbit'] ?? '-') ?></div>
-            <div><span>Tahun Terbit</span><?= htmlspecialchars($b['tahun_terbit'] ?? '-') ?></div>
-            <div><span>Lokasi Rak</span><?= htmlspecialchars($b['lokasi_rak'] ?? '-') ?></div>
-            <div><span>Stok</span><?= (int)$b['stok'] ?> tersedia</div>
+            <div><span>Genre</span><strong><?= htmlspecialchars($b['nama_kategori'] ?? '-') ?></strong></div>
+            <div><span>Kode Buku</span><strong><?= htmlspecialchars($b['kode_buku'] ?? '-') ?></strong></div>
+            <div><span>Penerbit</span><strong><?= htmlspecialchars($b['penerbit'] ?? '-') ?></strong></div>
+            <div><span>Tahun Terbit</span><strong><?= htmlspecialchars($b['tahun_terbit'] ?? '-') ?></strong></div>
+            <div><span>Lokasi Rak</span><strong><?= htmlspecialchars($b['lokasi_rak'] ?? '-') ?></strong></div>
+            <div><span>Stok</span><strong><?= (int)$b['stok'] ?> tersedia</strong></div>
           </div>
 
           <div class="deskripsi"><?= nl2br(htmlspecialchars($b['deskripsi'] ?? '-')) ?></div>
@@ -237,7 +183,7 @@ foreach ($daftarBuku as $b) {
     document.getElementById(id).classList.remove('show');
     document.body.style.overflow='';
   }
-  document.querySelectorAll('.overlay').forEach(function(ov){
+  document.querySelectorAll('.modal-overlay').forEach(function(ov){
     ov.addEventListener('click', function(e){
       if(e.target === ov){
         ov.classList.remove('show');
@@ -247,12 +193,13 @@ foreach ($daftarBuku as $b) {
   });
   document.addEventListener('keydown', function(e){
     if(e.key === 'Escape'){
-      document.querySelectorAll('.overlay.show').forEach(function(ov){
+      document.querySelectorAll('.modal-overlay.show').forEach(function(ov){
         ov.classList.remove('show');
       });
       document.body.style.overflow='';
     }
   });
   </script>
+</main>
 </body>
 </html>

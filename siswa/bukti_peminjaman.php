@@ -92,11 +92,19 @@ $status = $statusLabel[$data['status']] ?? ucfirst($data['status']);
   .receipt-actions a, .receipt-actions button { flex: 1; }
   .receipt-actions .btn, .receipt-actions .btn-outline { width: 100%; }
 
+  .due-highlight {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(217, 119, 6, 0.08); border: 1px solid rgba(217, 119, 6, 0.2);
+    border-radius: 12px; padding: 12px 16px; margin-top: 14px;
+  }
+  .due-highlight span:first-child { font-size: .78rem; color: var(--warning); font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+  .due-highlight span:last-child { font-family: 'Poppins', sans-serif; font-weight: 800; color: var(--navy); font-size: 1rem; }
+
   @media print {
     body * { visibility: hidden; }
     .receipt, .receipt * { visibility: visible; }
     .receipt { position: absolute; top: 0; left: 0; width: 100%; border: none; box-shadow: none; margin: 0; padding: 0; }
-    .no-print, .success-banner, .receipt-actions { display: none !important; }
+    .no-print, .success-banner, .receipt-actions, .confirm-steps { display: none !important; }
     .container { padding: 0 !important; }
     @page { size: A4; margin: 20mm; }
   }
@@ -104,6 +112,24 @@ $status = $statusLabel[$data['status']] ?? ucfirst($data['status']);
 </head>
 <body>
   <div class="container receipt-wrap">
+
+    <div class="confirm-steps no-print">
+      <div class="step done">
+        <span class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        <span class="label">Pilih Buku</span>
+      </div>
+      <span class="line"></span>
+      <div class="step done">
+        <span class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        <span class="label">Konfirmasi</span>
+      </div>
+      <span class="line"></span>
+      <div class="step active">
+        <span class="dot">3</span>
+        <span class="label">Selesai</span>
+      </div>
+    </div>
+
     <div class="success-banner">
       <div class="ic-ok">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><polyline points="8 12.5 11 15.5 16 9"/></svg>
@@ -142,8 +168,11 @@ $status = $statusLabel[$data['status']] ?? ucfirst($data['status']);
       <div class="receipt-section">
         <h4>Detail Peminjaman</h4>
         <div class="receipt-row"><span>Tanggal Pinjam</span><span><?= htmlspecialchars(date('d-m-Y', strtotime($data['tanggal_pinjam']))) ?></span></div>
-        <div class="receipt-row"><span>Jatuh Tempo</span><span><?= htmlspecialchars(date('d-m-Y', strtotime($data['tanggal_jatuh_tempo']))) ?></span></div>
-        <div class="receipt-row"><span>Status</span><span><?= htmlspecialchars($status) ?></span></div>
+        <div class="receipt-row"><span>Status</span><span><span class="badge badge-pending"><?= htmlspecialchars($status) ?></span></span></div>
+        <div class="due-highlight">
+          <span>Jatuh Tempo</span>
+          <span><?= htmlspecialchars(date('d-m-Y', strtotime($data['tanggal_jatuh_tempo']))) ?></span>
+        </div>
       </div>
 
       <div class="receipt-info">
