@@ -33,9 +33,18 @@ function requireSiswa() {
     }
 }
 
+// === PETUGAS HELPERS ===
+function isPetugas() {
+    return isset($_SESSION['petugas_id']);
+}
+
 function requirePetugas() {
-    if (!isset($_SESSION['petugas_id'])) {
+    if (!isPetugas()) {
         header('Location: login.php');
         exit;
     }
+}
+
+function petugasName() {
+    return $_SESSION['petugas_nama'] ?? null;
 }
