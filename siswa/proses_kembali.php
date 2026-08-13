@@ -2,8 +2,7 @@
 require_once '../includes/auth.php';
 requireSiswa();
 require_once '../config/database.php';
-
-const TARIF_DENDA_PER_HARI = 1000; // Rp1.000 / hari keterlambatan
+require_once '../config/constants.php'; // TARIF_DENDA_PER_HARI
 
 $id_anggota = $_SESSION['anggota_id'];
 requireCsrf();

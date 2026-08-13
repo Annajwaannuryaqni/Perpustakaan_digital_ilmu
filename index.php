@@ -163,6 +163,7 @@ function icon($name, $class = 'w-5 h-5') {
         'phone'        => '<path d="M6.5 3.5h3l1.5 4-2 1.5a12 12 0 0 0 5.5 5.5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A17 17 0 0 1 4.5 5.7 2 2 0 0 1 6.5 3.5Z"/>',
         'pin'          => '<path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z"/><circle cx="12" cy="9" r="2.4"/>',
         'login'        => '<path d="M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"/><polyline points="15 8 19 12 15 16"/><line x1="19" y1="12" x2="8.5" y2="12"/>',
+        'user-plus'    => '<path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M2.5 20a7 7 0 0 1 13 0"/><line x1="17.5" y1="8.5" x2="17.5" y2="14.5"/><line x1="14.5" y1="11.5" x2="20.5" y2="11.5"/>',
         'arrow-right'  => '<line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>',
         'sparkle'      => '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/>',
         'clock'        => '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>',
@@ -190,16 +191,16 @@ function icon($name, $class = 'w-5 h-5') {
           body: ['Inter', 'sans-serif'],
         },
         colors: {
-          navy: { 950: '#071325', 900: '#0B1F3A', 800: '#132d53', 700: '#1d3f72' },
-          ocean: { 500: '#0EA5E9', 400: '#38BDF8', 600: '#0284C7' },
-          royal: { 600: '#2563EB', 500: '#3B82F6' }
+          navy: { 950: '#081627', 900: '#0f2742', 800: '#173a5e', 700: '#204d79' },
+          ocean: { 500: '#1677d2', 400: '#4b96de', 600: '#1268bd' },
+          royal: { 600: '#0f5aa8', 500: '#1677d2' }
         },
         boxShadow: {
-          card: '0 4px 25px -4px rgba(11, 31, 58, 0.05)',
-          cardHover: '0 24px 45px -12px rgba(14, 165, 233, 0.22)',
-          slider: '0 25px 50px -12px rgba(7, 19, 37, 0.35)',
-          premium: '0 10px 40px -10px rgba(11, 31, 58, 0.12)',
-          nav: '0 1px 0 rgba(14, 165, 233, 0.08), 0 12px 30px -18px rgba(11, 31, 58, 0.12)',
+          card: '0 4px 25px -4px rgba(15, 39, 66, 0.05)',
+          cardHover: '0 24px 45px -12px rgba(22, 119, 210, 0.22)',
+          slider: '0 25px 50px -12px rgba(8, 22, 39, 0.35)',
+          premium: '0 10px 40px -10px rgba(15, 39, 66, 0.12)',
+          nav: '0 1px 0 rgba(22, 119, 210, 0.08), 0 12px 30px -18px rgba(15, 39, 66, 0.12)',
         }
       }
     }
@@ -214,18 +215,18 @@ function icon($name, $class = 'w-5 h-5') {
   .ocean-bg-pattern {
     background-color: #F8FAFC;
     background-image: 
-      radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.06) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(37, 99, 235, 0.05) 0px, transparent 50%),
-      radial-gradient(at 50% 50%, rgba(56, 189, 248, 0.03) 0px, transparent 60%);
+      radial-gradient(at 0% 0%, rgba(22, 119, 210, 0.06) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(15, 90, 168, 0.05) 0px, transparent 50%),
+      radial-gradient(at 50% 50%, rgba(75, 150, 222, 0.03) 0px, transparent 60%);
   }
 
   .scrollbar-none::-webkit-scrollbar { display: none; }
   .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 
   #navbar { transition: all .35s cubic-bezier(0.16, 1, 0.3, 1); }
-  #navbar.shrink { box-shadow: 0 1px 0 rgba(14,165,233,.1), 0 16px 40px -20px rgba(11,31,58,.2); }
-  #navbar.shrink .nav-inner { height: 64px; }
-  .nav-inner { height: 84px; transition: height .35s cubic-bezier(0.16, 1, 0.3, 1); }
+  #navbar.shrink { box-shadow: 0 1px 0 rgba(22,119,210,.1), 0 16px 40px -20px rgba(11,31,58,.2); }
+  #navbar.shrink .nav-inner { height: 68px; }
+  .nav-inner { height: 88px; transition: height .35s cubic-bezier(0.16, 1, 0.3, 1); }
 
   #sidebar {
     width: var(--sbw); transform: translateX(-100%);
@@ -234,7 +235,7 @@ function icon($name, $class = 'w-5 h-5') {
   #sidebar.open { transform: translateX(0); }
   #sidebarOverlay {
     opacity: 0; pointer-events: none; backdrop-filter: blur(6px);
-    background: rgba(7,19,37,.6);
+    background: rgba(8,22,39,.6);
     transition: opacity .35s cubic-bezier(0.16, 1, 0.3, 1);
   }
   #sidebarOverlay.show { opacity: 1; pointer-events: auto; }
@@ -242,12 +243,12 @@ function icon($name, $class = 'w-5 h-5') {
   .side-link:hover { transform: translateX(3px); }
   .side-link .side-ind {
     position: absolute; left: 0; top: 50%; transform: translateY(-50%) scaleY(0);
-    width: 4px; height: 60%; border-radius: 999px; background: #0EA5E9;
+    width: 4px; height: 60%; border-radius: 999px; background: #1677d2;
     transition: transform .25s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .side-link.active .side-ind,
   .side-link:hover .side-ind { transform: translateY(-50%) scaleY(1); }
-  .side-link.active { background: linear-gradient(90deg, rgba(14,165,233,.12), rgba(14,165,233,0)); color:#0284C7; }
+  .side-link.active { background: linear-gradient(90deg, rgba(22,119,210,.12), rgba(22,119,210,0)); color:#1268bd; }
 
   .slider-track { display: flex; transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
   .slider-item { min-width: 100%; box-sizing: border-box; }
@@ -255,7 +256,7 @@ function icon($name, $class = 'w-5 h-5') {
   .float-slow { animation: floatY 6s ease-in-out infinite; }
 
   .buku-card { transition: transform .4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .4s cubic-bezier(0.16, 1, 0.3, 1), border-color .3s ease; }
-  .buku-card:hover { transform: translateY(-6px); border-color: rgba(14,165,233,.4); }
+  .buku-card:hover { transform: translateY(-6px); border-color: rgba(22,119,210,.4); }
   .cover-img { transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
   .buku-card:hover .cover-img { transform: scale(1.07); }
 
@@ -264,7 +265,7 @@ function icon($name, $class = 'w-5 h-5') {
 
   .overlay {
     display: none; position: fixed; inset: 0; z-index: 100;
-    background: rgba(7, 19, 37, 0.68); backdrop-filter: blur(14px);
+    background: rgba(8, 22, 39, 0.68); backdrop-filter: blur(14px);
     align-items: center; justify-content: center; padding: 16px;
     opacity: 0; transition: opacity .3s cubic-bezier(0.16, 1, 0.3, 1);
   }
@@ -273,6 +274,555 @@ function icon($name, $class = 'w-5 h-5') {
   .overlay.show .modal-panel { transform: scale(1) translateY(0); opacity: 1; }
 
   .genre-hidden, .buku-hidden { display: none !important; }
+
+  /* =========================================================
+     MODAL DETAIL BUKU — PROFESSIONAL / RESPONSIVE
+     ========================================================= */
+  .book-modal-overlay{
+    padding: 14px;
+    overflow-y: auto;
+  }
+
+  .book-modal-panel{
+    width: min(100%, 980px);
+    height: min(88vh, 760px);
+    max-height: calc(100dvh - 28px);
+    display: grid;
+    grid-template-columns: minmax(270px, 34%) minmax(0, 1fr);
+    overflow: hidden;
+    border: 1px solid rgba(148,163,184,.20);
+    border-radius: 28px;
+    background: #fff;
+    box-shadow:
+      0 35px 80px -28px rgba(8,22,39,.42),
+      0 12px 35px -20px rgba(22,119,210,.18);
+  }
+
+  .book-modal-cover{
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(56,189,248,.22), transparent 38%),
+      linear-gradient(145deg, #081627 0%, #0f2742 58%, #173a5e 100%);
+  }
+
+  .book-modal-cover::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(180deg, rgba(8,22,39,.05) 0%, rgba(8,22,39,.08) 55%, rgba(8,22,39,.48) 100%);
+    pointer-events:none;
+  }
+
+  .book-modal-cover img{
+    position: relative;
+    z-index:1;
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    padding: 18px;
+    filter: drop-shadow(0 18px 28px rgba(0,0,0,.28));
+  }
+
+  .book-cover-caption{
+    position:absolute;
+    z-index:3;
+    left:20px;
+    right:20px;
+    bottom:18px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    color:#fff;
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:.02em;
+  }
+
+  .book-cover-caption span{
+    padding:7px 10px;
+    border:1px solid rgba(255,255,255,.16);
+    background:rgba(8,22,39,.45);
+    backdrop-filter:blur(10px);
+    border-radius:999px;
+  }
+
+  .book-modal-content{
+    min-width:0;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    background:#fff;
+  }
+
+  .book-modal-scroll{
+    min-height:0;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    scrollbar-width:thin;
+    scrollbar-color:#cbd5e1 transparent;
+  }
+
+  .book-modal-scroll::-webkit-scrollbar{ width:7px; }
+  .book-modal-scroll::-webkit-scrollbar-track{ background:transparent; }
+  .book-modal-scroll::-webkit-scrollbar-thumb{
+    background:#cbd5e1;
+    border-radius:999px;
+  }
+
+  .book-modal-header{
+    position:relative;
+    padding:28px 30px 18px;
+    border-bottom:1px solid #eef2f7;
+    background:
+      radial-gradient(circle at 100% 0%, rgba(22,119,210,.08), transparent 34%),
+      #fff;
+  }
+
+  .book-modal-eyebrow{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:10px;
+    color:#1268bd;
+    font-size:10px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.10em;
+  }
+
+  .book-modal-eyebrow::before{
+    content:"";
+    width:22px;
+    height:3px;
+    border-radius:999px;
+    background:linear-gradient(90deg,#1677d2,#0f5aa8);
+  }
+
+  .book-modal-title{
+    margin:0;
+    padding-right:42px;
+    color:#081627;
+    font-family:'Poppins',sans-serif;
+    font-size:clamp(20px,2.2vw,28px);
+    line-height:1.2;
+    font-weight:800;
+    letter-spacing:-.025em;
+  }
+
+  .book-modal-author{
+    margin-top:7px;
+    color:#64748b;
+    font-size:13px;
+    font-weight:600;
+  }
+
+  .book-modal-rating{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:15px;
+  }
+
+  .book-rating-score{
+    color:#081627;
+    font-size:19px;
+    font-weight:800;
+    line-height:1;
+  }
+
+  .book-rating-meta{
+    color:#94a3b8;
+    font-size:10px;
+    font-weight:600;
+  }
+
+  .book-modal-close{
+    position:absolute;
+    top:18px;
+    right:20px;
+    z-index:5;
+    width:38px;
+    height:38px;
+    border:1px solid #e2e8f0;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#64748b;
+    background:rgba(255,255,255,.94);
+    box-shadow:0 6px 18px rgba(15,23,42,.08);
+    transition:.2s ease;
+  }
+
+  .book-modal-close:hover{
+    color:#0f172a;
+    background:#f8fafc;
+    border-color:#cbd5e1;
+    transform:translateY(-1px);
+  }
+
+  .book-modal-body{
+    padding:22px 30px 28px;
+  }
+
+  .book-info-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+    margin-bottom:22px;
+  }
+
+  .book-info-item{
+    min-width:0;
+    padding:13px 14px;
+    border:1px solid #e8eef5;
+    border-radius:14px;
+    background:#f8fbff;
+  }
+
+  .book-info-label{
+    display:block;
+    margin-bottom:4px;
+    color:#94a3b8;
+    font-size:9px;
+    line-height:1.2;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+  }
+
+  .book-info-value{
+    display:block;
+    overflow:hidden;
+    color:#334155;
+    font-size:12px;
+    line-height:1.45;
+    font-weight:700;
+    text-overflow:ellipsis;
+  }
+
+  .book-info-value.available{
+     color:#047857;
+     display:flex;
+     align-items:center;
+     gap:7px;
+   }
+
+   .availability-dot{
+     width:7px;
+     height:7px;
+     flex:0 0 7px;
+     border-radius:50%;
+     background:#16a34a;
+     box-shadow:0 0 0 4px rgba(22,163,74,.10);
+   }
+
+  .book-section{
+    margin-top:20px;
+  }
+
+  .book-section-title{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:8px;
+    color:#0f172a;
+    font-size:13px;
+    font-weight:800;
+  }
+
+  .book-section-title .section-count{
+    color:#94a3b8;
+    font-size:10px;
+    font-weight:700;
+  }
+
+  .book-synopsis{
+    color:#64748b;
+    font-size:12px;
+    line-height:1.8;
+  }
+
+  .book-rating-card{
+    margin-top:22px;
+    padding:16px;
+    border:1px solid #dbeafe;
+    border-radius:18px;
+    background:linear-gradient(135deg,#f8fbff 0%,#ffffff 70%);
+  }
+
+  .book-rating-card .rating-input-card{
+    margin:0 !important;
+    padding:0;
+    background:transparent;
+    border:0;
+    border-radius:0;
+  }
+
+  .rating-card-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+  }
+
+  .rating-card-title{
+    color:#0f172a;
+    font-size:13px;
+    font-weight:800;
+  }
+
+  .rating-card-subtitle{
+    margin-top:3px;
+    color:#94a3b8;
+    font-size:10px;
+    line-height:1.5;
+  }
+
+  .rating-selected-badge{
+    border:1px solid #bfdbfe;
+    background:#eff6ff;
+    color:#1d4ed8;
+    white-space:nowrap;
+  }
+
+  .book-rating-card .rating-submit-btn{
+    margin-top:8px;
+  }
+
+  .book-review-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+
+  .book-review-item{
+    display:flex;
+    gap:11px;
+    padding:12px 0;
+    border-top:1px solid #eef2f7;
+  }
+
+  .book-review-avatar{
+    flex:0 0 34px;
+    width:34px;
+    height:34px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:11px;
+    color:#1268bd;
+    background:linear-gradient(135deg,#e0f2fe,#dbeafe);
+    font-size:12px;
+    font-weight:800;
+  }
+
+  .book-review-body{ min-width:0; flex:1; }
+
+  .book-review-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    margin-bottom:4px;
+  }
+
+  .book-review-name{
+    color:#334155;
+    font-size:11px;
+    font-weight:800;
+  }
+
+  .book-review-date{
+    color:#94a3b8;
+    font-size:9px;
+    font-weight:600;
+    white-space:nowrap;
+  }
+
+  .book-review-text{
+    color:#64748b;
+    font-size:11px;
+    line-height:1.65;
+  }
+
+  .book-review-empty{
+    padding:14px;
+    border:1px dashed #dbe3ec;
+    border-radius:13px;
+    color:#94a3b8;
+    background:#f8fafc;
+    font-size:11px;
+  }
+
+  .book-modal-footer{
+    flex-shrink:0;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    padding:14px 30px 16px;
+    border-top:1px solid #eaf0f5;
+    background:rgba(255,255,255,.96);
+    backdrop-filter:blur(12px);
+  }
+
+  .book-action{
+    min-height:44px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    border-radius:13px;
+    font-size:11px;
+    font-weight:800;
+    transition:.2s ease;
+  }
+
+  .book-action:hover{ transform:translateY(-1px); }
+
+  .book-action-primary{
+    color:#fff;
+    background:linear-gradient(135deg,#1268bd,#0f5aa8);
+    box-shadow:0 10px 24px rgba(37,99,235,.18);
+  }
+
+  .book-action-secondary{
+    color:#334155;
+    background:#f1f5f9;
+    border:1px solid #e2e8f0;
+  }
+
+  @media (max-width: 768px){
+    .book-modal-overlay{ padding:8px; align-items:flex-end; }
+    .book-modal-panel{
+      width:100%;
+      height:min(94dvh,820px);
+      max-height:calc(100dvh - 16px);
+      grid-template-columns:1fr;
+      grid-template-rows:220px minmax(0,1fr);
+      border-radius:24px;
+    }
+
+    .book-modal-cover{ min-height:220px; }
+    .book-modal-cover img{ padding:12px; }
+    .book-cover-caption{ left:14px; right:14px; bottom:12px; }
+
+    .book-modal-header{ padding:20px 20px 16px; }
+    .book-modal-body{ padding:18px 20px 24px; }
+    .book-modal-footer{ padding:12px 20px 14px; }
+    .book-modal-close{ top:12px; right:12px; }
+
+    .book-modal-title{ font-size:21px; }
+  }
+
+  @media (max-width: 480px){
+    .book-modal-panel{
+      grid-template-rows:185px minmax(0,1fr);
+      border-radius:20px;
+    }
+
+    .book-modal-cover{ min-height:185px; }
+    .book-modal-cover img{ padding:8px; }
+
+    .book-info-grid{ gap:8px; }
+    .book-info-item{ padding:11px 12px; }
+    .book-info-value{ font-size:11px; }
+
+    .book-rating-card{ padding:14px; }
+    .star-input-horizontal{ justify-content:center; }
+    .book-modal-footer{ grid-template-columns:1fr; }
+    .book-action{ min-height:42px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .modal-panel,
+    .book-modal-close,
+    .book-action{ transition:none !important; }
+  }
+
+
+  /* ===== Homepage hero: match clean library landing reference ===== */
+  .library-video-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 1160px;
+    max-height: 58vh;
+    margin: 0 auto;
+    aspect-ratio: 16 / 9;
+  }
+
+  .library-video-wrap video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-height: 58vh;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    background: #081627;
+  }
+
+  .library-video-wrap video::-webkit-media-controls-panel {
+    background-image: linear-gradient(transparent, rgba(0,0,0,.72));
+  }
+
+  .hero-video-mute-btn {
+    position: absolute;
+    right: 14px;
+    bottom: 14px;
+    z-index: 5;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.22);
+    background: rgba(8,22,39,.55);
+    backdrop-filter: blur(6px);
+    color: #fff;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: .01em;
+    cursor: pointer;
+    transition: background-color .2s ease, transform .18s ease, border-color .2s ease;
+  }
+
+  .hero-video-mute-btn:hover {
+    background: rgba(8,22,39,.75);
+    border-color: rgba(255,255,255,.38);
+  }
+
+  .hero-video-mute-btn:active {
+    transform: scale(.96);
+  }
+
+  .library-search input::selection {
+    background: rgba(22,119,210,.18);
+  }
+
+  @media (max-width: 768px) {
+    .library-video-wrap {
+      border-radius: 18px;
+      max-width: 100%;
+      max-height: none;
+    }
+
+    .library-video-wrap video {
+      aspect-ratio: 16 / 9;
+      max-height: none;
+      min-height: 0;
+    }
+
+    .hero-video-mute-btn {
+      right: 10px;
+      bottom: 10px;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+  }
 
   .btn-press { transition: transform .18s ease, box-shadow .25s ease, background-color .25s ease; }
   .btn-press:active { transform: scale(.97); }
@@ -381,7 +931,7 @@ function icon($name, $class = 'w-5 h-5') {
     border: 0;
     border-radius: 12px;
     padding: 10px 14px;
-    background: linear-gradient(135deg, #0284c7, #2563eb);
+    background: linear-gradient(135deg, #1268bd, #0f5aa8);
     color: #fff;
     font-size: 12px;
     font-weight: 800;
@@ -411,16 +961,156 @@ function icon($name, $class = 'w-5 h-5') {
   }
   .rating-login-link {
     text-decoration: none;
-    color: #2563eb;
+    color: #0f5aa8;
     font-weight: 700;
   }
   @media (max-width: 480px) {
     .star-input-horizontal { justify-content: center; gap: 1px; }
     .rating-star-btn { font-size: 31px; }
   }
+
+
+  /* =========================================================
+     FINAL POLISH — MODAL DETAIL BUKU
+     ========================================================= */
+  .book-modal-panel{
+    width:min(100%,1080px);
+    height:min(90vh,780px);
+    grid-template-columns:minmax(310px,38%) minmax(0,1fr);
+  }
+
+  .book-modal-cover img{
+    padding:10px 20px 72px;
+    filter:drop-shadow(0 22px 32px rgba(0,0,0,.32));
+    transition:transform .35s ease,filter .35s ease;
+  }
+
+  .book-modal-cover:hover img{
+    transform:scale(1.018);
+    filter:drop-shadow(0 26px 38px rgba(0,0,0,.36));
+  }
+
+  .book-modal-content{
+    height:100%;
+    overflow:hidden;
+  }
+
+  .book-modal-scroll{
+    flex:1 1 auto;
+    min-width:0;
+  }
+
+  .book-modal-header{
+    padding:25px 30px 17px;
+  }
+
+  .book-modal-rating{
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:12px;
+  }
+
+  .book-info-grid{
+    gap:12px;
+  }
+
+  .book-info-item{
+    padding:14px 15px;
+    border-radius:15px;
+    background:linear-gradient(135deg,#f8fbff 0%,#ffffff 100%);
+    transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease;
+  }
+
+  .book-info-item:hover{
+    border-color:#d6e6f7;
+    box-shadow:0 8px 22px rgba(15,39,66,.06);
+    transform:translateY(-1px);
+  }
+
+  .book-info-value.available{
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+
+  .availability-dot{
+    width:7px;
+    height:7px;
+    flex:0 0 7px;
+    border-radius:50%;
+    background:#16a34a;
+    box-shadow:0 0 0 4px rgba(22,163,74,.10);
+  }
+
+  .book-synopsis{
+    font-size:13px;
+    line-height:1.85;
+    max-width:78ch;
+  }
+
+  .book-modal-body{
+    padding-bottom:36px;
+  }
+
+  .book-modal-footer{
+    flex:0 0 auto;
+    position:relative;
+    z-index:10;
+    gap:12px;
+    padding:14px 30px 16px;
+    background:rgba(255,255,255,.98);
+    box-shadow:0 -10px 24px rgba(15,23,42,.06);
+  }
+
+  .book-action{
+    min-height:48px;
+    border-radius:14px;
+    font-size:12px;
+    gap:9px;
+    transition:transform .2s ease,box-shadow .2s ease,background .2s ease;
+  }
+
+  .book-action:focus-visible,
+  .book-modal-close:focus-visible,
+  .rating-star-btn:focus-visible{
+    outline:3px solid rgba(37,99,235,.22);
+    outline-offset:2px;
+  }
+
+  @media (max-width:768px){
+    .book-modal-panel{
+      width:100%;
+      height:min(95dvh,840px);
+    }
+
+    .book-modal-cover img{
+      padding:8px 16px 58px;
+    }
+
+    .book-modal-footer{
+      gap:10px;
+      padding:12px 20px 14px;
+    }
+  }
+
+  @media (max-width:480px){
+    .book-modal-panel{
+      grid-template-rows:195px minmax(0,1fr);
+    }
+
+    .book-modal-cover{
+      min-height:195px;
+    }
+
+    .book-modal-cover img{
+      padding:6px 12px 48px;
+    }
+  }
 </style>
 </head>
 <body class="antialiased ocean-bg-pattern selection:bg-ocean-500 selection:text-white">
+
+  <a href="#koleksi" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[110] focus:bg-navy-900 focus:text-white focus:text-sm focus:font-semibold focus:px-4 focus:py-2.5 focus:rounded-xl">Langsung ke konten koleksi</a>
 
   <!-- ===== OVERLAY SIDEBAR ===== -->
   <div id="sidebarOverlay" class="fixed inset-0 z-[90]" onclick="closeSidebar()"></div>
@@ -443,12 +1133,18 @@ function icon($name, $class = 'w-5 h-5') {
     </div>
 
     <nav class="flex-1 overflow-y-auto py-5 px-4 space-y-1">
-      <span class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Menu Utama</span>
+      <span class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Akun Saya</span>
       <a href="siswa/login.php" class="side-link flex items-center gap-3 px-3.5 py-3 mt-1 rounded-2xl text-slate-600 hover:bg-slate-50 hover:text-ocean-600 font-semibold text-sm">
         <span class="side-ind"></span>
-        <?= icon('dashboard', 'w-[18px] h-[18px]') ?> Dashboard
+        <?= icon('login', 'w-[18px] h-[18px]') ?> Masuk Siswa
       </a>
-      <a href="#" class="side-link active flex items-center gap-3 px-3.5 py-3 rounded-2xl font-semibold text-sm">
+      <a href="siswa/daftar.php" class="side-link flex items-center gap-3 px-3.5 py-3 rounded-2xl text-slate-600 hover:bg-slate-50 hover:text-ocean-600 font-semibold text-sm">
+        <span class="side-ind"></span>
+        <?= icon('user-plus', 'w-[18px] h-[18px]') ?> Daftar Anggota
+      </a>
+
+      <span class="block px-3 pt-5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Menu Utama</span>
+      <a href="#" class="side-link active flex items-center gap-3 px-3.5 py-3 mt-1 rounded-2xl font-semibold text-sm">
         <span class="side-ind"></span>
         <?= icon('home', 'w-[18px] h-[18px]') ?> Beranda
       </a>
@@ -518,109 +1214,97 @@ function icon($name, $class = 'w-5 h-5') {
       </nav>
 
       <div class="flex items-center gap-2 sm:gap-3">
-        <a href="#koleksi" class="bg-gradient-to-r from-navy-900 to-navy-800 hover:from-ocean-600 hover:to-ocean-500 text-white text-xs md:text-sm font-semibold px-4 md:px-5 py-2.5 rounded-xl shadow-md shadow-navy-900/10 transition btn-press">Jelajahi Novel</a>
+        <a href="siswa/login.php" class="hidden sm:inline-flex items-center text-navy-900 hover:text-ocean-600 text-xs md:text-sm font-semibold px-3 py-2.5 rounded-xl transition btn-press">Masuk</a>
+        <a href="siswa/daftar.php" class="bg-gradient-to-r from-navy-900 to-navy-800 hover:from-ocean-600 hover:to-ocean-500 text-white text-xs md:text-sm font-semibold px-4 md:px-5 py-2.5 rounded-xl shadow-md shadow-navy-900/10 transition btn-press">Daftar Anggota</a>
       </div>
     </div>
   </header>
 
-  <!-- ===== HERO SECTION & SLIDER (Luxury Ocean Theme) ===== -->
-  <section class="relative bg-gradient-to-b from-white via-sky-50/30 to-slate-100/40 pt-10 pb-14 md:pt-16 md:pb-20 overflow-hidden">
-    
-    <!-- Efek Cahaya Bawah Laut & Bubble Transparan Halus -->
-    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-gradient-to-r from-sky-400/10 to-blue-600/10 blur-[120px] pointer-events-none rounded-full"></div>
-    <div class="absolute top-10 left-10 w-4 h-4 rounded-full bg-sky-400/20 blur-[1px] animate-pulse"></div>
-    <div class="absolute bottom-12 right-20 w-6 h-6 rounded-full bg-ocean-400/20 blur-[1px] float-slow"></div>
+  <!-- ===== HERO SECTION — VIDEO LIBRARY LANDING ===== -->
+  <section class="relative overflow-hidden bg-white pt-8 pb-12 md:pt-9 md:pb-14">
+    <!-- Decorative marine accents -->
+    <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-[760px] h-[260px] rounded-full bg-blue-100/45 blur-[110px] pointer-events-none"></div>
+    <div class="absolute left-[7%] bottom-28 w-5 h-5 rounded-full bg-blue-300/55"></div>
+    <div class="absolute left-[6%] bottom-20 w-3 h-3 rounded-full bg-blue-100/80"></div>
+    <div class="absolute right-[7%] bottom-20 w-6 h-6 rounded-full bg-blue-300/65"></div>
+    <div class="absolute right-[6%] bottom-12 w-3 h-3 rounded-full bg-blue-100/80"></div>
 
-    <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center relative z-10">
+    <div class="relative z-10 max-w-[1380px] mx-auto px-5 sm:px-7 lg:px-8">
 
-      <!-- KIRI: Hero Section (Typography Elegan & Search Bar Premium) -->
-      <div class="lg:col-span-6 text-left reveal in-view">
-        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-ocean-500/10 border border-ocean-500/20 text-ocean-600 text-xs font-bold mb-5 shadow-sm">
-          <?= icon('sparkle', 'w-3.5 h-3.5') ?> Perpustakaan Digital Ilmu
+      <!-- VIDEO UTAMA -->
+      <div class="library-video-wrap relative overflow-hidden rounded-[1.25rem] md:rounded-[1.45rem] bg-slate-950 shadow-[0_24px_55px_-22px_rgba(15,39,66,.38)] border border-slate-200/80">
+        <video
+          id="heroVideo"
+          class="library-video block w-full h-full aspect-video object-cover"
+          autoplay
+          muted
+          loop
+          preload="auto"
+          playsinline
+          disablepictureinpicture
+          poster="assets/slider/slider1.jpg"
+          aria-label="Video pengenalan Perpustakaan Digital"
+        >
+          <!-- Ganti path video di bawah jika nama file video Anda berbeda. -->
+          <source src="assets/video/gods.mp4" type="video/mp4">
+          Browser Anda tidak mendukung pemutaran video.
+        </video>
+        <button
+          type="button"
+          id="heroVideoMuteBtn"
+          class="hero-video-mute-btn"
+          aria-label="Aktifkan suara video"
+          aria-pressed="false"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+          </svg>
+          <span>Suara Mati</span>
+        </button>
+      </div>
+
+      <!-- JUDUL + DESKRIPSI -->
+      <div class="max-w-5xl mx-auto text-center mt-7 md:mt-8 reveal in-view">
+        <div class="text-ocean-600 text-xs md:text-sm font-bold uppercase tracking-[0.14em] mb-2.5">
+          Perpustakaan Digital
         </div>
 
-        <h1 class="font-heading font-extrabold text-4xl sm:text-[2.75rem] lg:text-5xl text-navy-900 leading-[1.12] tracking-tight mb-5">
-          Gerbang Literasi & <br class="hidden sm:inline"><span class="text-transparent bg-clip-text bg-gradient-to-r from-ocean-500 to-royal-600">Dunia Novel Modern</span>
+        <h1 class="font-heading font-extrabold text-[2rem] sm:text-[2.45rem] md:text-[2.8rem] lg:text-[3.1rem] leading-[1.1] tracking-[-0.03em] text-navy-900">
+          Gerbang Literasi &amp; Dunia Novel Modern
         </h1>
 
-        <p class="text-slate-600 text-sm md:text-base leading-relaxed font-normal max-w-xl mb-7">
-          Nikmati kenyamanan membaca ribuan koleksi novel pilihan terbaik untuk pengalaman literasi yang berkesan.
+        <p class="max-w-3xl mx-auto mt-3.5 text-slate-500 text-sm md:text-base leading-relaxed">
+          Temukan koleksi buku dan novel pilihan untuk menemani perjalanan membaca
+          <br class="hidden md:block">
+          dan memperluas wawasan setiap hari.
         </p>
 
-        <!-- Search Bar Premium -->
-        <div class="max-w-xl mb-3">
-          <div class="relative shadow-premium rounded-2xl bg-white/90 backdrop-blur-md border border-sky-100 p-2 flex items-center focus-within:ring-2 focus-within:ring-ocean-500/30 transition">
-            <span class="pl-4 text-slate-400 shrink-0"><?= icon('search', 'w-5 h-5') ?></span>
+        <!-- SEARCH -->
+        <div class="max-w-[860px] mx-auto mt-6 md:mt-7">
+          <div class="library-search flex items-center gap-2 p-1.5 bg-white rounded-[1.2rem] border border-blue-100 shadow-[0_14px_35px_-18px_rgba(15,39,66,.28)] focus-within:border-blue-300 focus-within:ring-4 focus-within:ring-blue-100/70 transition-all">
+            <span class="pl-4 sm:pl-5 text-slate-500 shrink-0">
+              <?= icon('search', 'w-6 h-6') ?>
+            </span>
+
             <input
               id="searchInput"
               type="text"
-              placeholder="Cari judul novel atau nama pengarang..."
-              class="w-full pl-3 pr-4 py-2.5 bg-transparent text-navy-900 placeholder:text-slate-400 text-sm font-medium focus:outline-none"
+              placeholder="Cari judul buku, novel, atau nama pengarang..."
+              class="w-full min-w-0 px-2.5 sm:px-3 py-3 bg-transparent text-navy-900 placeholder:text-slate-400 text-sm md:text-base font-medium focus:outline-none"
               autocomplete="off"
             >
-            <button onclick="triggerSearch()" class="bg-gradient-to-r from-ocean-600 to-royal-600 hover:from-ocean-500 hover:to-royal-500 text-white text-xs md:text-sm font-semibold px-6 py-2.5 rounded-xl transition shadow-md shadow-ocean-500/25 shrink-0 btn-press">
+
+            <button
+              onclick="triggerSearch()"
+              class="shrink-0 min-w-[108px] md:min-w-[122px] bg-gradient-to-r from-[#1247b8] to-[#1649a8] hover:from-[#0e3fa7] hover:to-[#123f98] text-white text-sm md:text-base font-bold px-6 py-3 rounded-[1.05rem] shadow-[0_8px_20px_-8px_rgba(18,71,184,.55)] transition-all duration-200 hover:-translate-y-0.5 btn-press"
+            >
               Cari
             </button>
           </div>
-          <p id="searchCount" class="text-xs text-ocean-600 font-semibold mt-2 ml-2"></p>
-        </div>
-      </div>
 
-      <!-- KANAN: Hero Slider (Tepat 3 Slider, Fade+Zoom, Glassmorphism, Shadow Premium) -->
-      <div class="lg:col-span-6 relative reveal in-view">
-        <div class="relative w-full max-w-[600px] h-[400px] md:h-[430px] mx-auto rounded-[2rem] overflow-hidden shadow-slider border border-sky-100 bg-navy-900 group float-slow">
-
-          <div id="heroSlider" class="slider-track w-full h-full">
-            <?php
-              $sliders = [
-                [
-                  'img'   => 'assets/slider/slider1.jpg', 
-                  'title' => 'Jelajahi Dunia Imajinasi Melalui Novel', 
-                  'desc'  => 'Temukan berbagai koleksi novel terbaik mulai dari fiksi, romansa, petualangan, misteri hingga karya sastra pilihan.'
-                ],
-                [
-                  'img'   => 'assets/slider/slider2.jpg', 
-                  'title' => 'Ribuan Cerita Dalam Satu Perpustakaan', 
-                  'desc'  => 'Baca novel favoritmu kapan saja dengan koleksi modern yang dirancang khusus untuk kenyamanan membaca Anda.'
-                ],
-                [
-                  'img'   => 'assets/slider/slider3.jpg', 
-                  'title' => 'Membaca Novel, Membuka Wawasan', 
-                  'desc'  => 'Nikmati pengalaman eksplorasi literatur yang tenang, elegan, dan mendalam di era digital masa kini.'
-                ]
-              ];
-              foreach($sliders as $index => $s):
-            ?>
-              <div class="slider-item relative w-full h-full flex items-end p-7 md:p-9">
-                <div class="absolute inset-0 bg-navy-950 overflow-hidden">
-                  <img src="<?= $s['img'] ?>" alt="Slider <?= $index+1 ?>" class="w-full h-full object-cover opacity-60 transform scale-100 group-hover:scale-105 transition-transform duration-1000 ease-out" onerror="this.style.display='none'">
-                  <div class="absolute inset-0 bg-gradient-to-t from-navy-950 via-navy-900/50 to-transparent"></div>
-                  <!-- Efek kilau air tipis di bagian bawah slider -->
-                  <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-ocean-500 via-sky-300 to-royal-600 opacity-70"></div>
-                </div>
-
-                <div class="relative z-10 text-white max-w-lg">
-                  <h3 class="font-heading font-bold text-xl md:text-2xl mb-1.5 leading-snug"><?= $s['title'] ?></h3>
-                  <p class="text-slate-300 text-xs md:text-sm leading-relaxed"><?= $s['desc'] ?></p>
-                </div>
-              </div>
-            <?php endforeach; ?>
-          </div>
-
-          <!-- Tombol Next & Previous -->
-          <button onclick="prevSlide()" aria-label="Sebelumnya" class="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/10 hover:bg-white/25 text-white backdrop-blur-md flex items-center justify-center transition opacity-0 group-hover:opacity-100 btn-press border border-white/20">
-            <?= icon('chevron-left', 'w-4 h-4') ?>
-          </button>
-          <button onclick="nextSlide()" aria-label="Berikutnya" class="absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/10 hover:bg-white/25 text-white backdrop-blur-md flex items-center justify-center transition opacity-0 group-hover:opacity-100 btn-press border border-white/20">
-            <?= icon('chevron-right', 'w-4 h-4') ?>
-          </button>
-
-          <!-- Indikator Bulat Modern -->
-          <div class="absolute bottom-4 right-5 z-20 flex items-center gap-1.5">
-            <?php for($i=0; $i<count($sliders); $i++): ?>
-              <button onclick="goToSlide(<?= $i ?>)" class="slider-dot h-2 rounded-full transition-all duration-300 <?= $i === 0 ? 'bg-ocean-400 w-6' : 'bg-white/40 w-2' ?>"></button>
-            <?php endfor; ?>
-          </div>
+          <p id="searchCount" class="text-xs text-ocean-600 font-semibold mt-2 ml-2 text-left"></p>
         </div>
       </div>
 
@@ -697,9 +1381,6 @@ function icon($name, $class = 'w-5 h-5') {
                         <span class="text-xs text-slate-400 font-medium text-center">Cover Tidak Tersedia</span>
                       </div>
                     <?php endif; ?>
-                    <span class="absolute top-2.5 left-2.5 bg-navy-900/80 text-sky-300 text-[9px] font-bold px-2.5 py-1 rounded-lg backdrop-blur-md shadow-sm border border-white/10">
-                      <?= htmlspecialchars($genre) ?>
-                    </span>
                   </div>
 
                   <div class="p-4 flex flex-col gap-1.5">
@@ -730,7 +1411,7 @@ function icon($name, $class = 'w-5 h-5') {
   </main>
 
   <!-- ===== SECTION GRAFIK STATISTIK KOLEKSI (Publik) ===== -->
-  <section class="bg-white py-16 px-6 border-t border-sky-100">
+  <section class="bg-white py-12 px-6 border-t border-sky-100">
     <div class="max-w-5xl mx-auto reveal">
       <div class="text-center mb-10">
         <span class="text-xs font-bold uppercase tracking-wider text-ocean-600 bg-ocean-500/10 px-3.5 py-1.5 rounded-full mb-4 inline-block border border-ocean-500/20">Statistik</span>
@@ -837,174 +1518,239 @@ function icon($name, $class = 'w-5 h-5') {
     </div>
 
     <div class="max-w-7xl mx-auto pt-8 border-t border-sky-900/20 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-      <div>&copy; 2026 Perpustakaan Digital Sekolah. All Rights Reserved.</div>
+      <div>&copy; 2026 Perpustakaan Digital Sekolah. All Rights Reserved BY Annajwa Annur Yaqni - SMKN 1 SANDEN.</div>
     </div>
   </footer>
 
-  <!-- ===== MODAL DETAIL BUKU ===== -->
+  <!-- ===== MODAL DETAIL BUKU — REDESIGNED ===== -->
   <?php foreach ($daftarBuku as $b): ?>
-    <div class="overlay" id="modal-<?= $b['id_buku'] ?>">
-      <div class="modal-panel bg-white rounded-[1.75rem] max-w-2xl w-full max-h-[85vh] overflow-hidden relative flex flex-col md:flex-row shadow-2xl border border-slate-100">
-        <button onclick="tutupModal('modal-<?= $b['id_buku'] ?>')"
-                class="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-slate-900/70 hover:bg-slate-900 text-white flex items-center justify-center transition shadow-md btn-press">
-          <?= icon('close','w-4 h-4') ?>
-        </button>
+    <div class="overlay book-modal-overlay" id="modal-<?= $b['id_buku'] ?>" role="dialog" aria-modal="true" aria-labelledby="book-title-<?= $b['id_buku'] ?>">
+      <div class="modal-panel book-modal-panel">
 
-        <div class="w-full md:w-[260px] shrink-0 aspect-[3/4] md:aspect-auto bg-slate-100 flex items-center justify-center overflow-hidden">
+        <!-- Cover -->
+        <div class="book-modal-cover">
           <?php if ($b['cover']): ?>
-            <img class="w-full h-full object-cover" src="uploads/<?= htmlspecialchars($b['cover']) ?>" alt="<?= htmlspecialchars($b['judul']) ?>">
+            <img src="uploads/<?= htmlspecialchars($b['cover']) ?>"
+                 alt="Cover <?= htmlspecialchars($b['judul']) ?>"
+                 loading="lazy"
+                 onerror="this.style.display='none'">
           <?php else: ?>
-            <span class="text-xs text-slate-400 px-4 text-center">Tanpa Cover</span>
+            <div class="absolute inset-0 flex items-center justify-center text-center p-8 text-white/60 text-sm font-semibold">
+              Cover tidak tersedia
+            </div>
           <?php endif; ?>
+
+          <div class="book-cover-caption">
+            <span><?= htmlspecialchars($b['nama_kategori'] ?? 'Lainnya') ?></span>
+            <span><?= (int)$b['stok'] ?> tersedia</span>
+          </div>
         </div>
 
-        <div class="p-6 md:p-8 overflow-y-auto flex-1 min-w-0 flex flex-col justify-between">
-          <div>
-            <span class="inline-block text-[11px] font-bold text-ocean-600 bg-ocean-500/10 px-3 py-1 rounded-full mb-3">
-              <?= htmlspecialchars($b['nama_kategori'] ?? 'Lainnya') ?>
-            </span>
+        <!-- Content -->
+        <div class="book-modal-content">
 
-            <h2 class="font-heading font-bold text-xl text-navy-900 leading-snug mb-1"><?= htmlspecialchars($b['judul']) ?></h2>
-            <div class="text-sm text-slate-500 font-medium mb-2">Penulis: <?= htmlspecialchars($b['pengarang']) ?></div>
+          <div class="book-modal-scroll">
+            <div class="book-modal-header">
+              <button onclick="tutupModal('modal-<?= $b['id_buku'] ?>')"
+                      class="book-modal-close btn-press"
+                      aria-label="Tutup detail buku">
+                <?= icon('close','w-4 h-4') ?>
+              </button>
 
-            <?php $r = $ratingPerBuku[$b['id_buku']] ?? null; ?>
-            <div class="rating-summary-box mb-4">
-              <?php if ($r): ?>
-                <span class="rating-score"><?= number_format($r['rata'], 1) ?></span>
-                <span class="flex flex-col gap-0.5">
+              <div class="book-modal-eyebrow">Detail Koleksi</div>
+
+              <h2 id="book-title-<?= $b['id_buku'] ?>" class="book-modal-title">
+                <?= htmlspecialchars($b['judul']) ?>
+              </h2>
+
+              <div class="book-modal-author">
+                Oleh <?= htmlspecialchars($b['pengarang']) ?>
+              </div>
+
+              <?php $r = $ratingPerBuku[$b['id_buku']] ?? null; ?>
+              <div class="book-modal-rating">
+                <?php if ($r): ?>
+                  <span class="book-rating-score"><?= number_format($r['rata'], 1) ?></span>
                   <?= starsSvg($r['rata'], 15) ?>
-                  <span class="text-[10px] text-slate-400 font-semibold"><?= $r['jumlah'] ?> rating</span>
-                </span>
-              <?php else: ?>
-                <?= starsSvg(0, 15) ?>
-                <span class="text-xs text-slate-400 font-medium">Belum ada rating</span>
-              <?php endif; ?>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3 mb-6 text-xs bg-sky-50/50 p-4 rounded-2xl border border-sky-100">
-              <div><span class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-0.5">Penerbit</span><span class="font-bold text-slate-700"><?= htmlspecialchars($b['penerbit'] ?? '-') ?></span></div>
-              <div><span class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-0.5">Tahun Terbit</span><span class="font-bold text-slate-700"><?= htmlspecialchars($b['tahun_terbit'] ?? '-') ?></span></div>
-              <div><span class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-0.5">Lokasi Rak</span><span class="font-bold text-slate-700"><?= htmlspecialchars($b['lokasi_rak'] ?: '-') ?></span></div>
-              <div>
-                <span class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-0.5">Status Ketersediaan</span>
-                <span class="font-bold text-emerald-700">📚 <?= (int)$b['stok'] ?> Buku Tersedia</span>
+                  <span class="book-rating-meta"><?= $r['jumlah'] ?> rating pembaca</span>
+                <?php else: ?>
+                  <?= starsSvg(0, 15) ?>
+                  <span class="book-rating-meta">Belum ada rating</span>
+                <?php endif; ?>
               </div>
             </div>
 
-            <div class="text-xs leading-relaxed text-slate-600 mb-6">
-              <span class="font-bold text-slate-700 block mb-1">Sinopsis:</span>
-              <?= nl2br(htmlspecialchars($b['deskripsi'] ?: 'Belum ada deskripsi atau sinopsis untuk buku ini.')) ?>
-            </div>
+            <div class="book-modal-body">
 
-            <!-- ===== INPUT RATING ===== -->
-            <div class="rating-input-card mb-5">
-              <div class="flex items-start justify-between gap-3 mb-3">
-                <div>
-                  <span class="block text-sm font-bold text-navy-900">Berikan Penilaian</span>
-                  <span class="block text-[11px] text-slate-400 mt-0.5">
-                    <?= !empty($idAnggotaLogin) ? 'Nilai 1–5 sesuai pengalaman membaca kamu.' : 'Login sebagai anggota untuk memberikan rating.' ?>
-                  </span>
+              <!-- Informasi Utama -->
+              <div class="book-info-grid">
+                <div class="book-info-item">
+                  <span class="book-info-label">Penerbit</span>
+                  <span class="book-info-value"><?= htmlspecialchars($b['penerbit'] ?? '-') ?></span>
                 </div>
-                <span class="rating-selected-badge" id="ratingBadge-<?= $b['id_buku'] ?>">
-                  <?php
-                    $trIdBuku = $transaksiRatingPerBuku[$b['id_buku']] ?? null;
-                    $nilaiSaya = $trIdBuku ? ($ratingSayaPerBuku[$trIdBuku] ?? 0) : 0;
-                  ?>
-                  <?= $nilaiSaya ? $nilaiSaya . '/5' : 'Belum dipilih' ?>
-                </span>
+
+                <div class="book-info-item">
+                  <span class="book-info-label">Tahun Terbit</span>
+                  <span class="book-info-value"><?= htmlspecialchars($b['tahun_terbit'] ?? '-') ?></span>
+                </div>
+
+                <div class="book-info-item">
+                  <span class="book-info-label">Lokasi Rak</span>
+                  <span class="book-info-value"><?= htmlspecialchars($b['lokasi_rak'] ?: '-') ?></span>
+                </div>
+
+                <div class="book-info-item">
+                  <span class="book-info-label">Ketersediaan</span>
+                  <span class="book-info-value available"><span class="availability-dot" aria-hidden="true"></span><?= (int)$b['stok'] ?> buku tersedia</span>
+                </div>
               </div>
 
-              <?php if (!empty($idAnggotaLogin) && $trIdBuku): ?>
-                <form class="rating-form" data-book="<?= (int)$b['id_buku'] ?>">
-                  <input type="hidden" name="csrf" value="<?= htmlspecialchars($ratingCsrf) ?>">
-                  <input type="hidden" name="id_buku" value="<?= (int)$b['id_buku'] ?>">
-                  <input type="hidden" name="nilai" id="ratingValue-<?= $b['id_buku'] ?>" value="<?= (int)$nilaiSaya ?>">
-
-                  <div class="star-input-horizontal" role="radiogroup" aria-label="Pilih rating 1 sampai 5">
-                    <?php for ($star = 1; $star <= 5; $star++): ?>
-                      <button
-                        type="button"
-                        class="rating-star-btn <?= ($star <= $nilaiSaya) ? 'selected' : '' ?>"
-                        data-value="<?= $star ?>"
-                        aria-label="<?= $star ?> dari 5"
-                        aria-checked="<?= $star === $nilaiSaya ? 'true' : 'false' ?>"
-                      >★</button>
-                    <?php endfor; ?>
-                  </div>
-
-                  <div class="rating-help-text" id="ratingHelp-<?= $b['id_buku'] ?>">
-                    <?php
-                      $labelsRating = [
-                        1 => 'Sangat Buruk',
-                        2 => 'Buruk',
-                        3 => 'Cukup',
-                        4 => 'Bagus',
-                        5 => 'Sangat Bagus'
-                      ];
-                      echo $nilaiSaya ? ($nilaiSaya . ' dari 5 — ' . $labelsRating[$nilaiSaya]) : 'Klik bintang untuk memilih rating';
-                    ?>
-                  </div>
-
-                  <button type="submit" class="rating-submit-btn">
-                    Simpan Rating
-                  </button>
-                  <p class="rating-message" id="ratingMessage-<?= $b['id_buku'] ?>" aria-live="polite"></p>
-                </form>
-              <?php elseif (!empty($idAnggotaLogin)): ?>
-                <div class="rating-login-note">
-                  Kamu belum memiliki riwayat peminjaman buku ini. <strong>Pinjam buku terlebih dahulu</strong> agar bisa memberikan rating.
+              <!-- Sinopsis -->
+              <section class="book-section">
+                <div class="book-section-title">
+                  <span>Sinopsis</span>
                 </div>
-              <?php else: ?>
-                <a href="siswa/login.php" class="rating-login-note rating-login-link">
-                  Login sebagai anggota untuk memberikan rating →
-                </a>
-              <?php endif; ?>
-            </div>
+                <div class="book-synopsis">
+                  <?= nl2br(htmlspecialchars($b['deskripsi'] ?: 'Belum ada deskripsi atau sinopsis untuk buku ini.')) ?>
+                </div>
+              </section>
 
-            <div class="text-xs mb-4">
-              <span class="font-bold text-slate-700 block mb-2">Ulasan Pembaca:</span>
-              <?php $komentarBuku = $komentarPerBuku[$b['id_buku']] ?? []; ?>
-              <?php if ($komentarBuku): ?>
-                <div class="komentar-list">
-                  <?php foreach ($komentarBuku as $k):
-                    $inisial = strtoupper(substr(trim($k['nama_lengkap']), 0, 1)) ?: '?';
-                    $tgl = date('d M Y', strtotime($k['created_at']));
-                  ?>
-                    <div class="komentar-item">
-                      <div class="komentar-avatar"><?= htmlspecialchars($inisial) ?></div>
-                      <div class="komentar-body">
-                        <div class="komentar-head">
-                          <span class="komentar-nama"><?= htmlspecialchars($k['nama_lengkap']) ?></span>
-                          <span class="komentar-tgl"><?= $tgl ?></span>
-                        </div>
-                        <?php if ($k['nilai']): ?>
-                          <div class="mb-1"><?= starsSvg($k['nilai'], 11) ?></div>
-                        <?php endif; ?>
-                        <div class="komentar-isi"><?= nl2br(htmlspecialchars($k['isi_komentar'])) ?></div>
+              <!-- Rating -->
+              <section class="book-rating-card">
+                <div class="rating-input-card">
+                  <div class="rating-card-head">
+                    <div>
+                      <div class="rating-card-title">Berikan Penilaian</div>
+                      <div class="rating-card-subtitle">
+                        <?= !empty($idAnggotaLogin)
+                          ? 'Bagikan pengalaman membaca kamu dengan rating 1–5.'
+                          : 'Login sebagai anggota untuk memberikan rating.' ?>
                       </div>
                     </div>
-                  <?php endforeach; ?>
+
+                    <span class="rating-selected-badge" id="ratingBadge-<?= $b['id_buku'] ?>">
+                      <?php
+                        $trIdBuku = $transaksiRatingPerBuku[$b['id_buku']] ?? null;
+                        $nilaiSaya = $trIdBuku ? ($ratingSayaPerBuku[$trIdBuku] ?? 0) : 0;
+                      ?>
+                      <?= $nilaiSaya ? $nilaiSaya . '/5' : 'Belum dipilih' ?>
+                    </span>
+                  </div>
+
+                  <?php if (!empty($idAnggotaLogin) && $trIdBuku): ?>
+                    <form class="rating-form" data-book="<?= (int)$b['id_buku'] ?>">
+                      <input type="hidden" name="csrf" value="<?= htmlspecialchars($ratingCsrf) ?>">
+                      <input type="hidden" name="id_buku" value="<?= (int)$b['id_buku'] ?>">
+                      <input type="hidden" name="nilai" id="ratingValue-<?= $b['id_buku'] ?>" value="<?= (int)$nilaiSaya ?>">
+
+                      <div class="star-input-horizontal" role="radiogroup" aria-label="Pilih rating 1 sampai 5">
+                        <?php for ($star = 1; $star <= 5; $star++): ?>
+                          <button
+                            type="button"
+                            class="rating-star-btn <?= ($star <= $nilaiSaya) ? 'selected' : '' ?>"
+                            data-value="<?= $star ?>"
+                            aria-label="<?= $star ?> dari 5"
+                            aria-checked="<?= $star === $nilaiSaya ? 'true' : 'false' ?>"
+                          >★</button>
+                        <?php endfor; ?>
+                      </div>
+
+                      <div class="rating-help-text" id="ratingHelp-<?= $b['id_buku'] ?>">
+                        <?php
+                          $labelsRating = [
+                            1 => 'Sangat Buruk',
+                            2 => 'Buruk',
+                            3 => 'Cukup',
+                            4 => 'Bagus',
+                            5 => 'Sangat Bagus'
+                          ];
+                          echo $nilaiSaya
+                            ? ($nilaiSaya . ' dari 5 — ' . $labelsRating[$nilaiSaya])
+                            : 'Klik bintang untuk memilih rating';
+                        ?>
+                      </div>
+
+                      <button type="submit" class="rating-submit-btn">Simpan Rating</button>
+                      <p class="rating-message" id="ratingMessage-<?= $b['id_buku'] ?>" aria-live="polite"></p>
+                    </form>
+
+                  <?php elseif (!empty($idAnggotaLogin)): ?>
+                    <div class="rating-login-note">
+                      Kamu belum memiliki riwayat peminjaman buku ini.
+                      <strong>Pinjam buku terlebih dahulu</strong> agar bisa memberikan rating.
+                    </div>
+
+                  <?php else: ?>
+                    <a href="siswa/login.php" class="rating-login-note rating-login-link">
+                      Login sebagai anggota untuk memberikan rating →
+                    </a>
+                  <?php endif; ?>
                 </div>
-              <?php else: ?>
-                <p class="komentar-kosong">Belum ada ulasan untuk buku ini.</p>
+              </section>
+
+              <!-- Ulasan -->
+              <section class="book-section">
+                <div class="book-section-title">
+                  <span>Ulasan Pembaca</span>
+                  <?php $komentarBuku = $komentarPerBuku[$b['id_buku']] ?? []; ?>
+                  <?php if ($komentarBuku): ?>
+                    <span class="section-count"><?= count($komentarBuku) ?> ulasan</span>
+                  <?php endif; ?>
+                </div>
+
+                <?php if ($komentarBuku): ?>
+                  <div class="book-review-list">
+                    <?php foreach ($komentarBuku as $k):
+                      $inisial = strtoupper(substr(trim($k['nama_lengkap']), 0, 1)) ?: '?';
+                      $tgl = date('d M Y', strtotime($k['created_at']));
+                    ?>
+                      <div class="book-review-item">
+                        <div class="book-review-avatar"><?= htmlspecialchars($inisial) ?></div>
+                        <div class="book-review-body">
+                          <div class="book-review-head">
+                            <span class="book-review-name"><?= htmlspecialchars($k['nama_lengkap']) ?></span>
+                            <span class="book-review-date"><?= $tgl ?></span>
+                          </div>
+
+                          <?php if ($k['nilai']): ?>
+                            <div class="mb-1"><?= starsSvg($k['nilai'], 11) ?></div>
+                          <?php endif; ?>
+
+                          <div class="book-review-text">
+                            <?= nl2br(htmlspecialchars($k['isi_komentar'])) ?>
+                          </div>
+                        </div>
+                      </div>
+                    <?php endforeach; ?>
+                  </div>
+                <?php else: ?>
+                  <div class="book-review-empty">Belum ada ulasan untuk buku ini.</div>
+                <?php endif; ?>
+              </section>
+
+              <?php if (!empty($b['kode_buku'])): ?>
+                <div class="mt-5 pt-4 border-t border-slate-100 text-[10px] text-slate-400">
+                  Kode buku:
+                  <span class="font-mono font-semibold text-slate-500"><?= htmlspecialchars($b['kode_buku']) ?></span>
+                </div>
               <?php endif; ?>
+
             </div>
-
-            <?php if (!empty($b['kode_buku'])): ?>
-              <div class="text-[10px] text-slate-400 mb-4 pt-3 border-t border-slate-100">
-                Informasi Tambahan - Kode Buku: <span class="font-mono text-slate-500"><?= htmlspecialchars($b['kode_buku']) ?></span>
-              </div>
-            <?php endif; ?>
           </div>
 
-          <div class="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100">
-            <a href="siswa/login.php" class="flex items-center justify-center gap-2 text-center bg-gradient-to-r from-ocean-600 to-royal-600 hover:from-ocean-500 hover:to-royal-500 text-white text-xs font-bold py-3 px-4 rounded-xl shadow-lg shadow-ocean-500/20 transition btn-press">
-              <?= icon('book','w-4 h-4') ?> Pinjam Buku
+          <!-- Action Bar -->
+          <div class="book-modal-footer">
+            <a href="siswa/login.php" class="book-action book-action-primary btn-press">
+              <?= icon('book','w-4 h-4') ?>
+              Pinjam Buku
             </a>
-            <a href="siswa/login.php" class="flex items-center justify-center gap-2 text-center bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold py-3 px-4 rounded-xl transition btn-press">
-              <?= icon('book','w-4 h-4') ?> Baca di Tempat
+
+            <a href="siswa/login.php" class="book-action book-action-secondary btn-press">
+              <?= icon('book','w-4 h-4') ?>
+              Baca di Tempat
             </a>
           </div>
+
         </div>
       </div>
     </div>
@@ -1032,7 +1778,7 @@ function icon($name, $class = 'w-5 h-5') {
     const genreCanvas = document.getElementById('chartGenreLanding');
 
     if (genreCanvas && genreLabels.length) {
-      const oceanPalette = ['#0EA5E9', '#2563EB', '#38BDF8', '#0B1F3A', '#60A5FA', '#0284C7', '#93C5FD', '#1D3F72'];
+      const oceanPalette = ['#1677d2', '#0f5aa8', '#4b96de', '#0f2742', '#60A5FA', '#1268bd', '#93C5FD', '#204d79'];
       new Chart(genreCanvas, {
         type: 'doughnut',
         data: {
@@ -1052,7 +1798,7 @@ function icon($name, $class = 'w-5 h-5') {
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: '#0B1F3A',
+              backgroundColor: '#0f2742',
               titleFont: { family: 'Poppins', size: 13 },
               bodyFont: { family: 'Inter', size: 12 },
               padding: 10,
@@ -1256,8 +2002,15 @@ function icon($name, $class = 'w-5 h-5') {
 
     /* ===== Modal ===== */
     function bukaModal(id){
-      document.getElementById(id).classList.add('show');
+      const modal = document.getElementById(id);
+      if (!modal) return;
+      modal.classList.add('show');
       document.body.style.overflow = 'hidden';
+
+      const closeBtn = modal.querySelector('.book-modal-close');
+      if (closeBtn) {
+        setTimeout(() => closeBtn.focus(), 80);
+      }
     }
     function tutupModal(id){
       document.getElementById(id).classList.remove('show');
@@ -1347,5 +2100,29 @@ function icon($name, $class = 'w-5 h-5') {
       });
     }
   </script>
+<script>
+(function () {
+  var video = document.getElementById('heroVideo');
+  var btn = document.getElementById('heroVideoMuteBtn');
+  if (!video || !btn) return;
+
+  function syncBtn() {
+    var muted = video.muted;
+    btn.setAttribute('aria-pressed', String(!muted));
+    btn.querySelector('span').textContent = muted ? 'Suara Mati' : 'Suara Nyala';
+  }
+
+  btn.addEventListener('click', function () {
+    video.muted = !video.muted;
+    if (!video.muted) {
+      video.play().catch(function () {});
+    }
+    syncBtn();
+  });
+
+  video.addEventListener('volumechange', syncBtn);
+  syncBtn();
+})();
+</script>
 </body>
 </html>

@@ -17,7 +17,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password       = $_POST['password'] ?? '';
     $konfirmasi     = $_POST['konfirmasi_password'] ?? '';
 
-    if ($password !== $konfirmasi) {
+    if ($nis === '' || $nama_lengkap === '' || $kelas === '' || $username === '') {
+
+        $error = "Mohon lengkapi semua data wajib (NIS, Nama Lengkap, Kelas, Username).";
+
+    } elseif (strlen($password) < 6) {
+
+        // Indikator kekuatan password di JS hanya visual, jadi panjang minimal
+        // tetap harus divalidasi di backend supaya tidak bisa dilewati.
+        $error = "Password minimal 6 karakter.";
+
+    } elseif ($password !== $konfirmasi) {
 
         $error = "Password dan konfirmasi password tidak sama.";
 
@@ -40,34 +50,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $hash = password_hash($password, PASSWORD_BCRYPT);
 
-            $stmt = $koneksi->prepare("
-                INSERT INTO anggota
-                (
-                    nis,
-                    nama_lengkap,
-                    kelas,
-                    no_hp,
-                    alamat,
-                    username,
-                    password
-                )
-                VALUES
-                (
-                    ?,?,?,?,?,?,?
-                )
-            ");
+            try {
+                $stmt = $koneksi->prepare("
+                    INSERT INTO anggota
+                    (
+                        nis,
+                        nama_lengkap,
+                        kelas,
+                        no_hp,
+                        alamat,
+                        username,
+                        password
+                    )
+                    VALUES
+                    (
+                        ?,?,?,?,?,?,?
+                    )
+                ");
 
-            $stmt->execute([
-                $nis,
-                $nama_lengkap,
-                $kelas,
-                $no_hp,
-                $alamat,
-                $username,
-                $hash
-            ]);
+                $stmt->execute([
+                    $nis,
+                    $nama_lengkap,
+                    $kelas,
+                    $no_hp,
+                    $alamat,
+                    $username,
+                    $hash
+                ]);
 
-            $success = true;
+                $success = true;
+
+            } catch (PDOException $e) {
+                // Lapisan pertahanan kedua: kalau dua orang daftar dengan NIS/username
+                // sama persis di saat bersamaan, cek SELECT di atas bisa lolos untuk
+                // keduanya (race condition). UNIQUE KEY di database akan menolak salah
+                // satunya di sini — kita tangkap dan tampilkan sebagai pesan biasa,
+                // bukan error PHP mentah ke pengguna.
+                if ((int)$e->getCode() === 23000 || str_contains($e->getMessage(), 'Duplicate entry')) {
+                    $error = "NIS atau Username sudah terdaftar.";
+                } else {
+                    $error = "Terjadi kesalahan saat menyimpan data. Silakan coba lagi.";
+                }
+            }
 
         }
 
@@ -86,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 name="viewport"
 content="width=device-width, initial-scale=1.0">
 
-<title>Daftar Anggota</title>
+<title>Daftar Anggota — Perpustakaan Digital</title>
 
 <link rel="stylesheet" href="../assets/style.css">
 
@@ -96,141 +120,466 @@ href="../assets/css/notification.css">
 <link rel="stylesheet"
 href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
+<style>
+:root{
+  --navy:#0f2742;
+  --blue:#1677d2;
+  --text:#172033;
+  --muted:#667085;
+  --border:#d9e1ea;
+  --bg:#f4f7fb;
+}
+
+*{box-sizing:border-box}
+
+body.register-page{
+  margin:0;
+  min-height:100vh;
+  min-height:100dvh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:var(--bg);
+  font-family:Inter,Poppins,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  color:var(--text);
+}
+
+.login-card{
+  width:min(560px,100%);
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:36px;
+  box-shadow:0 12px 35px rgba(15,39,66,.08);
+}
+
+.login-brand{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  margin-bottom:28px;
+}
+
+.brand-icon{
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  border-radius:9px;
+  background:#edf5fc;
+  color:var(--blue);
+}
+
+.brand-icon svg{
+  width:20px;
+  height:20px;
+}
+
+.brand-text{
+  color:var(--navy);
+  font-size:13px;
+  font-weight:800;
+}
+
+.brand-subtext{
+  margin-top:2px;
+  color:#98a2b3;
+  font-size:9px;
+}
+
+.login-heading{
+  margin-bottom:25px;
+}
+
+.login-heading h1{
+  margin:0;
+  color:var(--navy);
+  font-size:25px;
+  line-height:1.25;
+  font-weight:800;
+  letter-spacing:-.02em;
+}
+
+.login-heading p{
+  margin:7px 0 0;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.6;
+}
+
+.login-alert{
+  display:flex;
+  gap:9px;
+  margin-bottom:18px;
+  padding:10px 11px;
+  border:1px solid #fecdca;
+  border-radius:9px;
+  background:#fff7f6;
+  color:#b42318;
+  font-size:10px;
+  line-height:1.5;
+}
+
+.login-alert svg{
+  flex:0 0 15px;
+}
+
+.form-section{
+  margin-bottom:22px;
+}
+
+.form-section-title{
+  margin-bottom:14px;
+  padding-bottom:8px;
+  border-bottom:1px solid #edf0f3;
+  color:var(--navy);
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+}
+
+.form-grid-2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+}
+
+.form-grid-2 .full{
+  grid-column:1 / -1;
+}
+
+.form-group{
+  margin-bottom:16px;
+}
+
+.form-grid-2 .form-group{
+  margin-bottom:0;
+}
+
+.form-label{
+  display:block;
+  margin-bottom:7px;
+  color:#344054;
+  font-size:10px;
+  font-weight:700;
+}
+
+.input-wrap{
+  position:relative;
+}
+
+.form-input{
+  width:100%;
+  height:44px;
+  padding:0 14px;
+  border:1px solid var(--border);
+  border-radius:9px;
+  outline:none;
+  background:#fff;
+  color:var(--text);
+  font:inherit;
+  font-size:11px;
+  transition:border-color .15s,box-shadow .15s;
+}
+
+textarea.form-input{
+  height:auto;
+  padding:10px 14px;
+  resize:vertical;
+  min-height:60px;
+}
+
+.form-input.has-toggle{
+  padding-right:40px;
+}
+
+.form-input::placeholder{
+  color:#a3adba;
+}
+
+.form-input:focus{
+  border-color:#65a8e6;
+  box-shadow:0 0 0 3px rgba(22,119,210,.08);
+}
+
+.password-toggle{
+  position:absolute;
+  right:7px;
+  top:50%;
+  width:30px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  border:0;
+  border-radius:7px;
+  background:transparent;
+  color:#98a2b3;
+  cursor:pointer;
+  transform:translateY(-50%);
+}
+
+.password-toggle:hover{
+  background:#f4f6f8;
+  color:#475467;
+}
+
+.pw-strength{
+  margin-top:8px;
+}
+
+.pw-strength-track{
+  height:5px;
+  border-radius:99px;
+  background:#edf0f3;
+  overflow:hidden;
+}
+
+.pw-strength-fill{
+  height:100%;
+  width:0%;
+  border-radius:99px;
+  transition:width .2s,background .2s;
+}
+
+.pw-strength-label{
+  display:block;
+  margin-top:6px;
+  color:#98a2b3;
+  font-size:9px;
+}
+
+.login-submit{
+  width:100%;
+  height:44px;
+  margin-top:4px;
+  border:0;
+  border-radius:9px;
+  background:var(--blue);
+  color:#fff;
+  font:inherit;
+  font-size:11px;
+  font-weight:800;
+  cursor:pointer;
+  transition:background .15s,transform .15s;
+}
+
+.login-submit:hover{
+  background:#1268bd;
+  transform:translateY(-1px);
+}
+
+.login-submit:disabled{
+  opacity:.7;
+  cursor:wait;
+  transform:none;
+}
+
+.back-link{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:6px;
+  margin-top:20px;
+  color:#667085;
+  text-decoration:none;
+  font-size:10px;
+  font-weight:650;
+}
+
+.back-link:hover{
+  color:var(--blue);
+}
+
+.login-footer{
+  margin-top:23px;
+  padding-top:15px;
+  border-top:1px solid #edf0f3;
+  text-align:center;
+  color:#98a2b3;
+  font-size:9px;
+  line-height:1.5;
+}
+
+.login-footer a{
+  color:var(--blue);
+  text-decoration:none;
+  font-weight:700;
+}
+
+.login-footer a:hover{
+  text-decoration:underline;
+}
+
+@media(max-width:480px){
+  body.register-page{
+    padding:15px;
+  }
+
+  .login-card{
+    padding:28px 22px;
+    border-radius:12px;
+    box-shadow:0 8px 25px rgba(15,39,66,.07);
+  }
+
+  .login-brand{
+    margin-bottom:24px;
+  }
+
+  .login-heading h1{
+    font-size:23px;
+  }
+
+  .form-grid-2{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+
 </head>
 
-<body>
+<body class="register-page">
 
-<div class="auth-shell">
+<main class="login-card">
 
-  <div class="auth-visual">
-    <div class="auth-visual-brand">
-      <span class="mark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h11a1 1 0 0 1 1 1v14"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H19"/><path d="M4 19.5V17"/><line x1="9" y1="7" x2="14" y2="7"/></svg>
-      </span>
-      Perpustakaan Digital Sekolah
+  <?php if(!$success): ?>
+
+  <div class="login-brand">
+    <div class="brand-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 5.5c2.3-1 5-1 8 .4v13.2c-3-1.4-5.7-1.4-8-.4V5.5Z"/>
+        <path d="M20 5.5c-2.3-1-5-1-8 .4v13.2c3-1.4 5.7-1.4 8-.4V5.5Z"/>
+        <path d="M12 5.9v13.2"/>
+      </svg>
     </div>
 
-    <div class="auth-visual-body">
-      <h1>Daftar sekali, pinjam buku kapan saja.</h1>
-      <p>Lengkapi data dirimu untuk membuat akun anggota perpustakaan sekolah.</p>
-    </div>
-
-    <div class="auth-visual-stats">
-      <div><strong>2 menit</strong><span>Proses pendaftaran</span></div>
-      <div><strong>Gratis</strong><span>Untuk seluruh siswa</span></div>
-      <div><strong>Aman</strong><span>Data tersimpan terenkripsi</span></div>
+    <div>
+      <div class="brand-text">Perpustakaan Digital</div>
+      <div class="brand-subtext">Sistem Informasi Perpustakaan Sekolah</div>
     </div>
   </div>
 
-  <div class="auth-form-side">
-    <div class="auth-form-card" style="max-width:480px;">
+  <div class="login-heading">
+    <h1>Daftar Anggota</h1>
+    <p>Lengkapi data dirimu untuk membuat akun anggota perpustakaan sekolah.</p>
+  </div>
 
-      <?php if(!$success): ?>
+  <?php if($error): ?>
+    <div class="login-alert" role="alert">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M12 7.5v5"/>
+        <path d="M12 16.2h.01"/>
+      </svg>
+      <span><?= htmlspecialchars($error) ?></span>
+    </div>
+  <?php endif; ?>
 
-      <div class="eyebrow">Portal Siswa</div>
-      <h2>Daftar Anggota Perpustakaan</h2>
-      <p class="lede">Isi data pribadi dan data akun kamu di bawah ini.</p>
+  <form method="POST" id="daftarForm">
+    <?= csrfField() ?>
 
-      <?php if($error): ?>
-      <p class="alert alert-gagal"><?= htmlspecialchars($error) ?></p>
-      <?php endif; ?>
+    <div class="form-section">
+      <div class="form-section-title">Informasi Pribadi</div>
 
-      <form method="POST">
-        <?= csrfField() ?>
-
-        <div class="form-section">
-          <div class="form-section-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
-            Informasi Pribadi
-          </div>
-
-          <div class="form-grid-2">
-            <div class="form-group">
-              <label for="nis">NIS</label>
-              <input type="text" id="nis" name="nis" required placeholder="Nomor Induk Siswa">
-            </div>
-
-            <div class="form-group">
-              <label for="kelas">Kelas</label>
-              <input type="text" id="kelas" name="kelas" required placeholder="Contoh: XII RPL 1">
-            </div>
-
-            <div class="form-group full">
-              <label for="nama_lengkap">Nama Lengkap</label>
-              <input type="text" id="nama_lengkap" name="nama_lengkap" required placeholder="Nama lengkap sesuai identitas">
-            </div>
-
-            <div class="form-group">
-              <label for="no_hp">No HP</label>
-              <input type="text" id="no_hp" name="no_hp" placeholder="08xxxxxxxxxx">
-            </div>
-
-            <div class="form-group full">
-              <label for="alamat">Alamat</label>
-              <textarea id="alamat" name="alamat" rows="2" placeholder="Alamat tempat tinggal"></textarea>
-            </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="nis">NIS</label>
+          <div class="input-wrap">
+            <input class="form-input" type="text" id="nis" name="nis" required placeholder="Nomor Induk Siswa" value="<?= htmlspecialchars($_POST['nis'] ?? '') ?>">
           </div>
         </div>
 
-        <div class="form-section">
-          <div class="form-section-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
-            Informasi Akun
-          </div>
-
-          <div class="form-group">
-            <label for="username">Username</label>
-            <div class="input-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
-              <input type="text" id="username" name="username" required placeholder="Username untuk login">
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="password">Password</label>
-            <div class="input-icon has-toggle">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
-              <input type="password" id="password" name="password" required placeholder="Minimal 6 karakter">
-              <button type="button" class="toggle-visibility" data-target="password" aria-label="Tampilkan password">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button>
-            </div>
-            <div class="pw-strength">
-              <div class="pw-strength-track"><div class="pw-strength-fill" id="pwFill"></div></div>
-              <span class="pw-strength-label" id="pwLabel">Ketik password untuk melihat kekuatannya</span>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="konfirmasi_password">Konfirmasi Password</label>
-            <div class="input-icon has-toggle">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
-              <input type="password" id="konfirmasi_password" name="konfirmasi_password" required placeholder="Ulangi password">
-              <button type="button" class="toggle-visibility" data-target="konfirmasi_password" aria-label="Tampilkan password">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button>
-            </div>
-            <span class="pw-strength-label" id="pwMatchLabel"></span>
+        <div class="form-group">
+          <label class="form-label" for="kelas">Kelas</label>
+          <div class="input-wrap">
+            <input class="form-input" type="text" id="kelas" name="kelas" required placeholder="Contoh: XII RPL 1" value="<?= htmlspecialchars($_POST['kelas'] ?? '') ?>">
           </div>
         </div>
 
-        <button type="submit" class="btn" id="btnDaftar" style="width:100%;margin-top:22px;">
-          Daftar Sekarang
-        </button>
-      </form>
+        <div class="form-group full">
+          <label class="form-label" for="nama_lengkap">Nama Lengkap</label>
+          <div class="input-wrap">
+            <input class="form-input" type="text" id="nama_lengkap" name="nama_lengkap" required placeholder="Nama lengkap sesuai identitas" value="<?= htmlspecialchars($_POST['nama_lengkap'] ?? '') ?>">
+          </div>
+        </div>
 
-      <div class="form-foot">
-        Sudah punya akun? <a href="login.php" class="btn-link">Masuk di sini</a>
+        <div class="form-group">
+          <label class="form-label" for="no_hp">No HP</label>
+          <div class="input-wrap">
+            <input class="form-input" type="text" id="no_hp" name="no_hp" placeholder="08xxxxxxxxxx" value="<?= htmlspecialchars($_POST['no_hp'] ?? '') ?>">
+          </div>
+        </div>
+
+        <div class="form-group full">
+          <label class="form-label" for="alamat">Alamat</label>
+          <div class="input-wrap">
+            <textarea class="form-input" id="alamat" name="alamat" rows="2" placeholder="Alamat tempat tinggal"><?= htmlspecialchars($_POST['alamat'] ?? '') ?></textarea>
+          </div>
+        </div>
       </div>
-      <br>
-      <a href="../index.php" class="back-link" style="justify-content:center;display:flex;">← Kembali ke Beranda</a>
-
-      <?php endif; ?>
-
     </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Informasi Akun</div>
+
+      <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <div class="input-wrap">
+          <input class="form-input" type="text" id="username" name="username" required placeholder="Username untuk login" value="<?= htmlspecialchars($_POST['username'] ?? '') ?>">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <div class="input-wrap">
+          <input class="form-input has-toggle" type="password" id="password" name="password" required minlength="6" placeholder="Minimal 6 karakter">
+          <button type="button" class="password-toggle toggle-visibility" data-target="password" aria-label="Tampilkan password">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3.5 12s3.1-5 8.5-5 8.5 5 8.5 5-3.1 5-8.5 5-8.5-5-8.5-5Z"/>
+              <circle cx="12" cy="12" r="2.3"/>
+            </svg>
+          </button>
+        </div>
+        <div class="pw-strength">
+          <div class="pw-strength-track"><div class="pw-strength-fill" id="pwFill"></div></div>
+          <span class="pw-strength-label" id="pwLabel">Ketik password untuk melihat kekuatannya</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="konfirmasi_password">Konfirmasi Password</label>
+        <div class="input-wrap">
+          <input class="form-input has-toggle" type="password" id="konfirmasi_password" name="konfirmasi_password" required minlength="6" placeholder="Ulangi password">
+          <button type="button" class="password-toggle toggle-visibility" data-target="konfirmasi_password" aria-label="Tampilkan password">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3.5 12s3.1-5 8.5-5 8.5 5 8.5 5-3.1 5-8.5 5-8.5-5-8.5-5Z"/>
+              <circle cx="12" cy="12" r="2.3"/>
+            </svg>
+          </button>
+        </div>
+        <span class="pw-strength-label" id="pwMatchLabel"></span>
+      </div>
+    </div>
+
+    <button type="submit" class="login-submit" id="btnDaftar">Daftar Sekarang</button>
+  </form>
+
+  <div class="login-footer">
+    Sudah punya akun? <a href="login.php">Masuk di sini</a>
   </div>
 
-</div>
+  <a href="../index.php" class="back-link">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 12H5"/>
+      <path d="m11 6-6 6 6 6"/>
+    </svg>
+    Kembali ke halaman utama
+  </a>
+
+  <?php endif; ?>
+
+</main>
 
 <div id="toast-container"></div>
 <audio id="notificationSound" preload="auto">
@@ -249,7 +598,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     });
   });
 
-  // Indikator kekuatan password (visual only, tidak memblokir submit)
+  // Indikator kekuatan password (visual only, tidak memblokir submit —
+  // validasi wajib tetap dilakukan di server)
   var pwInput = document.getElementById('password');
   var pwFill = document.getElementById('pwFill');
   var pwLabel = document.getElementById('pwLabel');
@@ -263,11 +613,11 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       if (/[^A-Za-z0-9]/.test(val)) score++;
 
       var levels = [
-        { width: '0%',   color: 'var(--slate-200)', label: 'Ketik password untuk melihat kekuatannya' },
-        { width: '30%',  color: 'var(--danger)',     label: 'Lemah' },
-        { width: '55%',  color: 'var(--warning)',    label: 'Cukup' },
-        { width: '80%',  color: 'var(--royal-500)',  label: 'Kuat' },
-        { width: '100%', color: 'var(--success)',    label: 'Sangat kuat' }
+        { width: '0%',   color: '#edf0f3', label: 'Ketik password untuk melihat kekuatannya' },
+        { width: '30%',  color: '#e5484d', label: 'Lemah' },
+        { width: '55%',  color: '#f59e0b', label: 'Cukup' },
+        { width: '80%',  color: '#1677d2', label: 'Kuat' },
+        { width: '100%', color: '#22c55e', label: 'Sangat kuat' }
       ];
       var lvl = val.length === 0 ? levels[0] : levels[Math.min(score, 4)];
       pwFill.style.width = lvl.width;
@@ -283,10 +633,10 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     if (!pwConfirm.value) { pwMatchLabel.textContent = ''; return; }
     if (pwConfirm.value === pwInput.value) {
       pwMatchLabel.textContent = 'Password cocok';
-      pwMatchLabel.style.color = 'var(--success)';
+      pwMatchLabel.style.color = '#22c55e';
     } else {
       pwMatchLabel.textContent = 'Password belum sama';
-      pwMatchLabel.style.color = 'var(--danger)';
+      pwMatchLabel.style.color = '#e5484d';
     }
   }
   if (pwConfirm) {
@@ -295,7 +645,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
   }
 
   // Loading state saat submit
-  var formDaftar = document.querySelector('.auth-form-card form');
+  var formDaftar = document.getElementById('daftarForm');
   if (formDaftar) {
     formDaftar.addEventListener('submit', function () {
       var btn = document.getElementById('btnDaftar');

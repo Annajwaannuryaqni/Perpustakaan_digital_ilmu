@@ -1386,7 +1386,7 @@ textarea {
 .book-card:hover .cover-wrap img { transform: scale(1.04); }
 .book-card .no-cover { font-size:.74rem; color: var(--slate-400); text-align:center; padding:0 10px; }
 .book-card .info { padding:14px 15px 15px; display:flex; flex-direction:column; gap:4px; flex:1; }
-.book-card .judul { font-weight:700; font-size:.92rem; line-height:1.35; color: var(--navy); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.book-card .judul { font-weight:700; font-size:.92rem; line-height:1.35; color: var(--navy); display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .book-card .pengarang { font-size:.78rem; color: var(--muted); }
 .book-card .baris-bawah { margin-top:auto; padding-top:10px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .book-card .baris-bawah .badge { padding:5px 11px; font-size:.68rem; }

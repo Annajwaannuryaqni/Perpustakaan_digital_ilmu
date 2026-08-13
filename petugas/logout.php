@@ -1,11 +1,8 @@
 <?php
-require_once '../includes/auth.php';
+session_start();
 
-// Hanya hapus data session milik Petugas. Tidak memakai session_destroy()
-// agar session Administrator/Siswa yang mungkin aktif di browser yang sama
-// tidak ikut terhapus.
-unset($_SESSION['petugas_id']);
-unset($_SESSION['petugas_nama']);
+$_SESSION = [];
+session_destroy();
 
-header('Location: login.php');
+header('Location: ../index.php');
 exit;
