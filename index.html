@@ -971,12 +971,15 @@ function icon($name, $class = 'w-5 h-5') {
 
 
   /* =========================================================
-     FINAL POLISH — MODAL DETAIL BUKU
+     FINAL POLISH — MODAL DETAIL BUKU (khusus layar lebar,
+     supaya tidak menimpa layout 1 kolom di HP)
      ========================================================= */
-  .book-modal-panel{
-    width:min(100%,1080px);
-    height:min(90vh,780px);
-    grid-template-columns:minmax(310px,38%) minmax(0,1fr);
+  @media (min-width: 769px){
+    .book-modal-panel{
+      width:min(100%,1080px);
+      height:min(90vh,780px);
+      grid-template-columns:minmax(310px,38%) minmax(0,1fr);
+    }
   }
 
   .book-modal-cover img{
