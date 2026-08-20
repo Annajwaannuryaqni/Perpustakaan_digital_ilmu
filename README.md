@@ -318,33 +318,4 @@ Project ini dikembangkan sebagai aplikasi perpustakaan digital sekolah untuk men
 
 ## 9. Status Project
 
-**Status: Development / Finalisasi**
-
-- [x] Landing page
-- [x] Login Admin
-- [x] Login Petugas
-- [x] Login Siswa
-- [x] Registrasi Siswa
-- [x] Dashboard Admin
-- [x] Dashboard Petugas
-- [x] Dashboard Siswa
-- [x] Manajemen Buku
-- [x] Manajemen Anggota
-- [x] Manajemen Petugas
-- [x] Peminjaman Buku
-- [x] Pengembalian Buku
-- [x] Perhitungan Denda
-- [x] Rating Buku
-- [x] Komentar
-- [x] Presensi Kunjungan
-- [x] Bukti Peminjaman
-- [x] Notifikasi
-- [x] Suara Notifikasi
-- [x] Pencarian Buku
-- [x] Sistem Role dan Authentication
-
----
-
-## 10. Catatan
-
 Aplikasi ini dibuat untuk kebutuhan **perpustakaan sekolah** dan masih dapat dikembangkan lebih lanjut, seperti penambahan laporan transaksi, export data, pencetakan laporan, statistik yang lebih lengkap, serta peningkatan sistem keamanan dan manajemen pengguna.
