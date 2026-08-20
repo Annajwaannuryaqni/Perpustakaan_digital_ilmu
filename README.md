@@ -6,7 +6,7 @@ Sistem ini mencakup pengelolaan data buku dan anggota, peminjaman dan pengembali
 
 Aplikasi dikembangkan menggunakan **PHP Native, MySQL/MariaDB, PDO, Tailwind CSS, dan JavaScript** dengan menerapkan sistem autentikasi berdasarkan hak akses pengguna.
 
-**Live Demo:** ...
+**Live Demo:** https://perpustakaandigitalilmu.infinityfreeapp.com
 
 **Mockup:** ...
 
