@@ -316,6 +316,6 @@ Project ini dikembangkan sebagai aplikasi perpustakaan digital sekolah untuk men
 
 ---
 
-## 9. Status Project
+## 9. Catatan
 
 Aplikasi ini dibuat untuk kebutuhan **perpustakaan sekolah** dan masih dapat dikembangkan lebih lanjut, seperti penambahan laporan transaksi, export data, pencetakan laporan, statistik yang lebih lengkap, serta peningkatan sistem keamanan dan manajemen pengguna.
