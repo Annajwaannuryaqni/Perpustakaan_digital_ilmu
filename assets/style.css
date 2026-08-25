@@ -966,6 +966,12 @@ textarea {
 .admin-main { min-height: 100vh; margin-left: 0; }
 .admin-main > .container { max-width: 1360px; padding: 78px 32px 56px; }
 
+/* Halaman yang sudah punya .topbar kustom (buku, anggota, transaksi,
+   kunjungan, presensi) tidak perlu padding-top ekstra 78px lagi,
+   karena .topbar sudah memberi jarak sendiri (margin-bottom 28px).
+   Tanpa ini, jaraknya jadi dobel dan muncul gap kosong besar. */
+.admin-main > .topbar + .container { padding-top: 24px; }
+
 .admin-page .breadcrumb {
   margin-bottom: 6px;
   color: var(--muted);

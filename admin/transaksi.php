@@ -3,6 +3,8 @@ require_once '../includes/auth.php';
 requireAdmin();
 require_once '../config/database.php';
 
+date_default_timezone_set('Asia/Jakarta');
+
 $daftarTransaksi = $koneksi->query("
     SELECT t.*, a.nama_lengkap, a.kelas, b.judul
     FROM transaksi t
@@ -10,27 +12,109 @@ $daftarTransaksi = $koneksi->query("
     JOIN buku b ON b.id_buku = t.id_buku
     ORDER BY t.id_transaksi DESC
 ")->fetchAll();
+
+$totalTransaksi = count($daftarTransaksi);
+$totalDipinjam = 0;
+$totalDikembalikan = 0;
+foreach ($daftarTransaksi as $t) {
+    if ($t['status'] === 'dipinjam') {
+        $totalDipinjam++;
+    } else {
+        $totalDikembalikan++;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Data Transaksi</title>
+<title>Data Transaksi | Perpustakaan Digital Ilmu</title>
 <link rel="stylesheet" href="../assets/style.css">
 <style>
-  @media print {
-    .page-head a, .btn, .back-link, .no-print, th:last-child, td:last-child { display: none !important; }
+.transaksi-topbar{min-height:86px!important;padding:0 38px 0 210px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:20px}
+.topbar-info{display:flex;flex-direction:column;gap:3px}
+.topbar-brand{font-size:17px;font-weight:800;color:#fff;letter-spacing:-.2px}
+.topbar-page{font-size:13px;color:rgba(255,255,255,.72)}
+.transaksi-wrapper{max-width:1200px;margin:26px auto 50px}
+.transaksi-hero{padding:26px 28px;border-radius:18px;background:linear-gradient(135deg,#fff,#f8fbff);border:1px solid #e2e8f0;box-shadow:0 8px 25px rgba(15,23,42,.05)}
+.transaksi-hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.transaksi-hero h1{margin:0 0 7px;font-size:25px;color:#0f172a;letter-spacing:-.5px}
+.transaksi-hero p{margin:0;color:#64748b;font-size:14px;line-height:1.6}
+.print-btn{flex-shrink:0;padding:12px 20px;border:0;border-radius:11px;background:#0284c7;color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:.2s}
+.print-btn:hover{background:#0369a1;transform:translateY(-1px);box-shadow:0 8px 18px rgba(2,132,199,.22)}
+.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-top:22px}
+.summary-card{min-width:0;padding:16px;border:1px solid #e2e8f0;border-radius:14px;background:#fff;display:flex;align-items:center;gap:12px;box-shadow:0 4px 14px rgba(15,23,42,.035)}
+.summary-icon{width:42px;height:42px;flex:0 0 42px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:#eff6ff;color:#0284c7}
+.summary-icon svg{width:21px;height:21px}
+.summary-card.warning .summary-icon{background:#fffbeb;color:#d97706}
+.summary-card.success .summary-icon{background:#ecfdf5;color:#059669}
+.summary-content{min-width:0}
+.summary-content strong{display:block;color:#0f172a;font-size:19px;line-height:1.2}
+.summary-content span{display:block;margin-top:3px;color:#94a3b8;font-size:11px}
+.report-section{margin-top:25px}
+.section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}
+.section-heading h2{margin:0;font-size:17px;color:#0f172a}
+.section-heading span{font-size:11px;color:#94a3b8}
+.report-table{overflow:hidden;border:1px solid #e2e8f0;border-radius:16px;background:#fff;box-shadow:0 6px 20px rgba(15,23,42,.045)}
+.report-table table{width:100%;border-collapse:collapse}
+.report-table th{padding:13px 14px;background:#f8fafc;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.3px;text-align:left;border-bottom:1px solid #e2e8f0}
+.report-table td{padding:14px;color:#475569;font-size:12px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+.report-table tr:last-child td{border-bottom:0}
+.hapus-link{color:#dc2626;background:none;border:none;cursor:pointer;padding:0;font:inherit;font-weight:700;font-size:11px}
+.empty-report{padding:55px 20px;text-align:center}
+.empty-icon-custom{width:58px;height:58px;margin:0 auto 13px;display:flex;align-items:center;justify-content:center;border-radius:16px;background:#f1f5f9;color:#94a3b8}
+.empty-icon-custom svg{width:29px;height:29px}
+.empty-report strong{display:block;color:#334155;font-size:14px}
+.empty-report span{display:block;margin-top:5px;color:#94a3b8;font-size:11px}
+.print-header{display:none;text-align:center;margin-bottom:16px}
+.print-header h2{margin:0 0 4px}
+.print-header p{margin:0;color:#64748b;font-size:13px}
+@media(max-width:700px){
+.transaksi-topbar{min-height:76px!important;padding:0 16px 0 88px!important}
+.topbar-brand{font-size:14px}
+.topbar-page{font-size:11px}
+.transaksi-wrapper{margin:18px auto 35px;padding-left:14px;padding-right:14px}
+.transaksi-hero{padding:21px 18px;border-radius:16px}
+.transaksi-hero-top{display:block}
+.transaksi-hero h1{font-size:22px}
+.transaksi-hero p{font-size:12px}
+.print-btn{width:100%;margin-top:16px}
+.summary-grid{grid-template-columns:1fr;gap:9px;margin-top:17px}
+.summary-card{padding:12px}
+.summary-icon{width:38px;height:38px;flex-basis:38px}
+.summary-content strong{font-size:17px}
+.summary-content span{font-size:10px}
+.report-section{margin-top:21px}
+.section-heading h2{font-size:15px}
+.report-table{border-radius:14px}
+.report-table table,.report-table thead,.report-table tbody,.report-table tr,.report-table th,.report-table td{display:block}
+.report-table thead{display:none}
+.report-table tr{padding:15px;border-bottom:1px solid #e2e8f0}
+.report-table tr:last-child{border-bottom:0}
+.report-table td{position:relative;display:flex;align-items:center;justify-content:space-between;gap:15px;padding:7px 0;border:0;text-align:right}
+.report-table td:before{content:attr(data-label);font-size:10px;font-weight:700;color:#94a3b8;text-align:left;flex:0 0 100px}
+.report-table td[data-label="Judul Buku"]{display:block;padding-bottom:11px;text-align:left}
+.report-table td[data-label="Judul Buku"]:before{display:none}
+.report-table td[data-label="Aksi"]{padding-top:11px;margin-top:4px;border-top:1px solid #f1f5f9}
+.report-table td[data-label="Aksi"]:before{display:none}
+}
+@media print {
+    .admin-sidebar, .admin-menu-toggle, .admin-sidebar-overlay, .transaksi-topbar { display: none !important; }
+    .no-print, .print-btn, th:last-child, td:last-child { display: none !important; }
     body { background: #fff; }
+    .admin-main { margin-left: 0 !important; }
     .container { max-width: 100%; margin: 0; padding: 0; }
-    .card { box-shadow: none; border: none; padding: 0; }
+    .transaksi-wrapper { max-width: 100%; margin: 0; }
+    .transaksi-hero { display: none !important; }
+    .report-table { box-shadow: none; border: none; border-radius: 0; }
     .print-header { display: block !important; }
 
     /* Paksa tabel tetap horizontal (lawan CSS responsive mode HP) */
-    table { display: table !important; width: 100% !important; border-collapse: collapse !important; }
-    table thead { display: table-header-group !important; }
-    table tbody { display: table-row-group !important; }
-    table tr {
+    .report-table table { display: table !important; width: 100% !important; border-collapse: collapse !important; }
+    .report-table thead { display: table-header-group !important; }
+    .report-table tbody { display: table-row-group !important; }
+    .report-table tr {
       display: table-row !important;
       background: none !important;
       border: none !important;
@@ -39,15 +123,15 @@ $daftarTransaksi = $koneksi->query("
       box-shadow: none !important;
       page-break-inside: avoid;
     }
-    table th, table td {
+    .report-table th, .report-table td {
       display: table-cell !important;
       text-align: left !important;
       border: 1px solid #cbd5e1 !important;
       padding: 8px 10px !important;
       font-size: 11px !important;
     }
-    table td::before { content: none !important; }
-    table thead th {
+    .report-table td::before { content: none !important; }
+    .report-table thead th {
       background: #f1f5f9 !important;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
@@ -56,10 +140,7 @@ $daftarTransaksi = $koneksi->query("
       color: #334155 !important;
     }
     .badge { border: 1px solid #cbd5e1; padding: 2px 8px; border-radius: 6px; background: none !important; color: #1e293b !important; }
-  }
-  .print-header { display: none; text-align: center; margin-bottom: 16px; }
-  .print-header h2 { margin: 0 0 4px; }
-  .print-header p { margin: 0; color: #64748b; font-size: 13px; }
+}
 </style>
 </head>
 <body class="admin-page">
@@ -84,25 +165,83 @@ $daftarTransaksi = $koneksi->query("
       <a href="logout.php" class="admin-logout-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H6.5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2H11"/><polyline points="15.5 8 19.5 12 15.5 16"/><line x1="19.5" y1="12" x2="9" y2="12"/></svg><span>Keluar</span></a>
     </div>
   </aside>
+
   <main class="admin-main">
 
-
+  <div class="topbar transaksi-topbar">
+    <div class="topbar-info">
+      <span class="topbar-brand">Perpustakaan Digital Ilmu</span>
+      <span class="topbar-page">Data Transaksi Peminjaman</span>
+    </div>
+  </div>
 
   <div class="container">
-    <div class="print-header">
-      <h2>Laporan Data Transaksi Peminjaman</h2>
-      <p>Perpustakaan Digital Sekolah — dicetak <?= date('d-m-Y H:i') ?> WIB</p>
-    </div>
+  <div class="transaksi-wrapper">
 
-    <div class="page-head">
+  <div class="print-header">
+    <h2>Laporan Data Transaksi Peminjaman</h2>
+    <p>Perpustakaan Digital Sekolah — dicetak <?= date('d-m-Y H:i') ?> WIB</p>
+  </div>
+
+  <div class="transaksi-hero">
+    <div class="transaksi-hero-top">
       <div>
         <h1>Data Transaksi Peminjaman</h1>
-        <p>Total <?= count($daftarTransaksi) ?> transaksi tercatat.</p>
+        <p>Pantau seluruh transaksi peminjaman dan pengembalian buku siswa.</p>
       </div>
-      <button onclick="window.print()" class="btn no-print" type="button">Cetak Laporan</button>
+      <button onclick="window.print()" class="print-btn no-print" type="button">Cetak Laporan</button>
     </div>
 
-    <div class="card">
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5V5a2 2 0 0 1 2-2h11a1 1 0 0 1 1 1v14"/>
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H19"/>
+          </svg>
+        </div>
+        <div class="summary-content">
+          <strong><?= $totalTransaksi ?></strong>
+          <span>Total Transaksi</span>
+        </div>
+      </div>
+
+      <div class="summary-card warning">
+        <div class="summary-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9.5"/>
+            <polyline points="12 7 12 12 15.5 14"/>
+          </svg>
+        </div>
+        <div class="summary-content">
+          <strong><?= $totalDipinjam ?></strong>
+          <span>Sedang Dipinjam</span>
+        </div>
+      </div>
+
+      <div class="summary-card success">
+        <div class="summary-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9.5"/>
+            <polyline points="8 12.5 11 15.5 16 9"/>
+          </svg>
+        </div>
+        <div class="summary-content">
+          <strong><?= $totalDikembalikan ?></strong>
+          <span>Sudah Dikembalikan</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="report-section">
+    <div class="section-heading">
+      <h2>Riwayat Transaksi</h2>
+      <span><?= $totalTransaksi ?> data</span>
+    </div>
+
+    <div class="report-table">
+      <?php if ($daftarTransaksi): ?>
       <table>
         <thead>
           <tr>
@@ -119,7 +258,7 @@ $daftarTransaksi = $koneksi->query("
         <tbody>
           <?php foreach ($daftarTransaksi as $t): ?>
           <tr>
-            <td data-label="Nama Siswa" style="font-weight:600;"><?= htmlspecialchars($t['nama_lengkap']) ?></td>
+            <td data-label="Nama Siswa" style="font-weight:600;color:#0f172a;"><?= htmlspecialchars($t['nama_lengkap']) ?></td>
             <td data-label="Kelas"><?= htmlspecialchars($t['kelas']) ?></td>
             <td data-label="Judul Buku"><?= htmlspecialchars($t['judul']) ?></td>
             <td data-label="Tgl Pinjam"><?= $t['tanggal_pinjam'] ?></td>
@@ -136,17 +275,29 @@ $daftarTransaksi = $koneksi->query("
               <form method="POST" action="hapus_transaksi.php" class="no-print" style="display:inline;" onsubmit="return confirm('Hapus data transaksi ini?')">
                 <?= csrfField() ?>
                 <input type="hidden" name="id" value="<?= $t['id_transaksi'] ?>">
-                <button type="submit" class="btn-link" style="color:var(--coral); background:none; border:none; cursor:pointer; padding:0; font:inherit;">Hapus</button>
+                <button type="submit" class="hapus-link">Hapus</button>
               </form>
             </td>
           </tr>
           <?php endforeach; ?>
-          <?php if (!$daftarTransaksi): ?>
-          <tr><td colspan="8" style="text-align:center;">Belum ada transaksi</td></tr>
-          <?php endif; ?>
         </tbody>
       </table>
+      <?php else: ?>
+      <div class="empty-report">
+        <div class="empty-icon-custom">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5V5a2 2 0 0 1 2-2h11a1 1 0 0 1 1 1v14"/>
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H19"/>
+          </svg>
+        </div>
+        <strong>Belum ada transaksi</strong>
+        <span>Transaksi peminjaman siswa akan muncul di sini.</span>
+      </div>
+      <?php endif; ?>
     </div>
+  </div>
+
+  </div>
   </div>
   </main>
 </body>

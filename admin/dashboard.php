@@ -130,11 +130,72 @@ function dashIcon($name, $class = 'ic') {
 
   .empty-row { text-align: center; color: #64748b; padding: 28px !important; font-size: .85rem; }
 
+  /* ===== Grafik: tinggi tetap terkontrol di semua ukuran layar ===== */
+  .chart-wrap { position: relative; height: 300px; width: 100%; }
+
+  /* ===== Tabel: bisa discroll horizontal tanpa merusak layout halaman ===== */
+  .table-glass-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-glass-container table { min-width: 560px; }
+
+  /* =======================================================
+     RESPONSIVE — Tablet & layar sedang (<= 1100px)
+     ======================================================= */
   @media (max-width: 1100px) {
     .quick-menu-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .chart-grid { grid-template-columns: 1fr !important; }
   }
+
+  /* =======================================================
+     RESPONSIVE — Tablet kecil / HP landscape (<= 780px)
+     ======================================================= */
+  @media (max-width: 780px) {
+    .page-head.glass-header {
+      flex-direction: column;
+      align-items: flex-start !important;
+      gap: 14px;
+    }
+    .page-head.glass-header > div:last-child {
+      width: 100%;
+      justify-content: space-between;
+    }
+    .page-head h1 { font-size: 1.35rem; }
+    .glass-card { padding: 18px 16px !important; }
+    .section-title { font-size: .95rem; margin-bottom: 14px; }
+  }
+
+  /* =======================================================
+     RESPONSIVE — HP (<= 600px)
+     ======================================================= */
   @media (max-width: 600px) {
     .quick-menu-grid { grid-template-columns: 1fr; }
+    .stat-grid { grid-template-columns: 1fr !important; gap: 12px; }
+    .chart-wrap { height: 240px; }
+
+    .page-head h1 { font-size: 1.15rem; gap: 8px; }
+    .page-head h1 .ic { width: 18px; height: 18px; }
+    .dash-status { font-size: .72rem; padding: 7px 12px; }
+
+    .stat-card-modern { padding: 16px !important; }
+    .stat-value { font-size: 1.25rem !important; }
+    .stat-label { font-size: .72rem !important; }
+
+    .table-glass-container table { min-width: 480px; font-size: .82rem; }
+    .status-pill { font-size: .68rem; padding: 4px 10px; }
+
+    .quick-actions-head { margin-bottom: 4px; }
+  }
+
+  /* =======================================================
+     RESPONSIVE — HP kecil (<= 380px)
+     ======================================================= */
+  @media (max-width: 380px) {
+    .container { padding-left: 12px !important; padding-right: 12px !important; }
+    .page-head h1 { font-size: 1.05rem; }
+    .dash-status { font-size: .68rem; padding: 6px 10px; }
   }
 </style>
 </head>
