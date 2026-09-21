@@ -22,23 +22,19 @@ function createNotification($koneksi, $user_id, $user_type, $title, $message, $t
 }
 
 /**
- * Kirim notifikasi yang sama ke SEMUA admin dan petugas sekaligus.
- * Dipanggil saat ada aktivitas siswa yang perlu diketahui staff (peminjaman baru, dsb).
- *
- * CATATAN: fungsi ini mengasumsikan nama kolom primary key id_admin (tabel admin)
- * dan id_petugas (tabel petugas). Kalau nama kolom di database kamu berbeda,
- * sesuaikan dulu di bagian SELECT dan $a['...']/$p['...'] di bawah ini.
+ * Kirim notifikasi yang sama ke SEMUA admin dan SEMUA petugas yang statusnya
+ * aktif sekaligus (broadcast). Dipakai untuk kejadian yang perlu diketahui
+ * staf perpustakaan, misalnya ada peminjaman/pengembalian baru dari siswa,
+ * atau ada pendaftaran anggota baru.
  */
 function notifyStaff($koneksi, $title, $message, $type = 'info', $icon = 'fa-bell', $color = '#00f2fe') {
-    // Kirim ke semua admin
     $admins = $koneksi->query("SELECT id_admin FROM admin")->fetchAll();
     foreach ($admins as $a) {
         createNotification($koneksi, $a['id_admin'], 'admin', $title, $message, $type, $icon, $color);
     }
 
-    // Kirim ke semua petugas
-    $petugas = $koneksi->query("SELECT id_petugas FROM petugas")->fetchAll();
-    foreach ($petugas as $p) {
+    $petugasAktif = $koneksi->query("SELECT id_petugas FROM petugas WHERE status = 'aktif'")->fetchAll();
+    foreach ($petugasAktif as $p) {
         createNotification($koneksi, $p['id_petugas'], 'petugas', $title, $message, $type, $icon, $color);
     }
 }

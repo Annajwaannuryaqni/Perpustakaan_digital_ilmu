@@ -4,13 +4,23 @@ requirePetugas();
 require_once '../config/database.php';
 require_once '../config/constants.php'; // TARIF_DENDA_PER_HARI — satu sumber tarif denda untuk seluruh aplikasi
 
+// Tanggal acuan keterlambatan:
+//  - 'menunggu_konfirmasi' -> tanggal siswa mengajukan pengembalian (sama dengan proses_kembali.php)
+//  - 'dipinjam'            -> hari ini (buku masih di tangan siswa)
+// COALESCE ke CURDATE() hanya untuk transaksi lama yang kolom pengajuannya masih NULL.
 $daftarTerlambat = $koneksi->query("
     SELECT t.*, a.nama_lengkap AS nama_anggota, a.nis, a.kelas, b.judul,
-           DATEDIFF(CURDATE(), t.tanggal_jatuh_tempo) AS hari_terlambat
+           DATEDIFF(
+               CASE WHEN t.status = 'menunggu_konfirmasi'
+                    THEN COALESCE(t.tanggal_pengajuan_kembali, CURDATE())
+                    ELSE CURDATE() END,
+               t.tanggal_jatuh_tempo
+           ) AS hari_terlambat
     FROM transaksi t
     JOIN anggota a ON a.id_anggota = t.id_anggota
     JOIN buku b ON b.id_buku = t.id_buku
-    WHERE t.status IN ('dipinjam','menunggu_konfirmasi') AND t.tanggal_jatuh_tempo < CURDATE()
+    WHERE t.status IN ('dipinjam','menunggu_konfirmasi')
+    HAVING hari_terlambat > 0
     ORDER BY t.tanggal_jatuh_tempo ASC
 ")->fetchAll();
 

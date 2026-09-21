@@ -27,6 +27,7 @@ function petugasSideLink($href, $key, $label, $svgInner, $active) {
     <?php petugasSideLink('peminjaman.php', 'peminjaman', 'Peminjaman', '<path d="M4 7.5h13.5L15 4.5"/><path d="M20 16.5H6.5L9 19.5"/>', $activeMenu); ?>
     <?php petugasSideLink('pengembalian.php', 'pengembalian', 'Pengembalian', '<path d="M20 7.5H6.5L9 4.5"/><path d="M4 16.5h13.5L15 19.5"/>', $activeMenu); ?>
     <?php petugasSideLink('buku_terlambat.php', 'terlambat', 'Buku Terlambat', '<circle cx="12" cy="12" r="8.5"/><polyline points="12 7.5 12 12 15.5 14"/>', $activeMenu); ?>
+    <?php petugasSideLink('denda.php', 'denda', 'Denda', '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', $activeMenu); ?>
 
     <div class="admin-side-label" style="margin-top:14px;">DATA</div>
     <?php petugasSideLink('data_buku.php', 'data_buku', 'Data Buku', '<path d="M4 5.5c2.2-1 5-1 7 .3v13.7c-2-1.3-4.8-1.3-7-.3V5.5Z"/><path d="M20 5.5c-2.2-1-5-1-7 .3v13.7c2-1.3 4.8-1.3 7-.3V5.5Z"/>', $activeMenu); ?>

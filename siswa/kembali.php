@@ -198,7 +198,6 @@ $tanggalIndonesia=date('d').' '.$namaBulan[(int)date('n')].' '.date('Y');
 
 </div>
 
-<main>
 <div class="container">
 <div class="kembali-wrapper">
 

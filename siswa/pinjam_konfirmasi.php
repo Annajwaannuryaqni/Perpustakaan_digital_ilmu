@@ -401,5 +401,6 @@ $stokTersedia = (int)$buku['stok'] > 0;
     </div>
 
   </div>
+</main>
 </body>
 </html>

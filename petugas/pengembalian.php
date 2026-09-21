@@ -77,10 +77,13 @@ $activeMenu = 'pengembalian';
         </thead>
         <tbody>
           <?php foreach ($daftarPinjaman as $p):
-              $hariIni = strtotime(date('Y-m-d'));
+              // Samakan dengan proses_kembali.php: patokan telat/denda adalah tanggal
+              // siswa MENGAJUKAN pengembalian, bukan tanggal hari ini.
+              // Fallback ke hari ini hanya untuk transaksi lama (kolom masih NULL).
+              $tanggalKembaliResmi = strtotime($p['tanggal_pengajuan_kembali'] ?? date('Y-m-d'));
               $jatuhTempo = strtotime($p['tanggal_jatuh_tempo']);
-              $telat = $hariIni > $jatuhTempo;
-              $hariTerlambat = $telat ? floor(($hariIni - $jatuhTempo) / 86400) : 0;
+              $telat = $tanggalKembaliResmi > $jatuhTempo;
+              $hariTerlambat = $telat ? (int)floor(($tanggalKembaliResmi - $jatuhTempo) / 86400) : 0;
               $denda = min($hariTerlambat * TARIF_DENDA_PER_HARI, TARIF_DENDA_MAKSIMUM);
           ?>
           <tr>

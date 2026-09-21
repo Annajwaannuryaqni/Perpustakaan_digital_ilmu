@@ -14,22 +14,29 @@ $pengembalianHariIni = $stmtKembaliHariIni->fetch()['total'];
 
 $bukuDipinjam = $koneksi->query("SELECT COUNT(*) AS total FROM transaksi WHERE status = 'dipinjam'")->fetch()['total'];
 
-$bukuTerlambat = $koneksi->query("
-    SELECT COUNT(*) AS total FROM transaksi
-    WHERE status = 'dipinjam' AND tanggal_jatuh_tempo < CURDATE()
-")->fetch()['total'];
-
-// ---- Buku terlambat (ringkas, 5 teratas) ----
-$daftarTerlambat = $koneksi->query("
+// Definisi "terlambat" HARUS sama dengan petugas/buku_terlambat.php:
+// status 'dipinjam' atau 'menunggu_konfirmasi', dengan tanggal acuan =
+// tanggal pengajuan kembali (jika sudah diajukan siswa) atau hari ini.
+$sqlTerlambat = "
     SELECT t.*, a.nama_lengkap AS nama_anggota, b.judul,
-           DATEDIFF(CURDATE(), t.tanggal_jatuh_tempo) AS hari_terlambat
+           DATEDIFF(
+               CASE WHEN t.status = 'menunggu_konfirmasi'
+                    THEN COALESCE(t.tanggal_pengajuan_kembali, CURDATE())
+                    ELSE CURDATE() END,
+               t.tanggal_jatuh_tempo
+           ) AS hari_terlambat
     FROM transaksi t
     JOIN anggota a ON a.id_anggota = t.id_anggota
     JOIN buku b ON b.id_buku = t.id_buku
-    WHERE t.status = 'dipinjam' AND t.tanggal_jatuh_tempo < CURDATE()
+    WHERE t.status IN ('dipinjam','menunggu_konfirmasi')
+    HAVING hari_terlambat > 0
     ORDER BY t.tanggal_jatuh_tempo ASC
-    LIMIT 5
-")->fetchAll();
+";
+$semuaTerlambat = $koneksi->query($sqlTerlambat)->fetchAll();
+$bukuTerlambat = count($semuaTerlambat);
+
+// ---- Buku terlambat (ringkas, 5 teratas) ----
+$daftarTerlambat = array_slice($semuaTerlambat, 0, 5);
 
 $activeMenu = 'dashboard';
 
