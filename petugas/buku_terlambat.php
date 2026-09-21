@@ -2,8 +2,7 @@
 require_once '../includes/auth.php';
 requirePetugas();
 require_once '../config/database.php';
-
-const TARIF_DENDA_PER_HARI = 1000;
+require_once '../config/constants.php'; // TARIF_DENDA_PER_HARI — satu sumber tarif denda untuk seluruh aplikasi
 
 $daftarTerlambat = $koneksi->query("
     SELECT t.*, a.nama_lengkap AS nama_anggota, a.nis, a.kelas, b.judul,
@@ -11,7 +10,7 @@ $daftarTerlambat = $koneksi->query("
     FROM transaksi t
     JOIN anggota a ON a.id_anggota = t.id_anggota
     JOIN buku b ON b.id_buku = t.id_buku
-    WHERE t.status = 'dipinjam' AND t.tanggal_jatuh_tempo < CURDATE()
+    WHERE t.status IN ('dipinjam','menunggu_konfirmasi') AND t.tanggal_jatuh_tempo < CURDATE()
     ORDER BY t.tanggal_jatuh_tempo ASC
 ")->fetchAll();
 
@@ -51,7 +50,7 @@ $activeMenu = 'terlambat';
         </thead>
         <tbody>
           <?php foreach ($daftarTerlambat as $d):
-            $denda = (int)$d['hari_terlambat'] * TARIF_DENDA_PER_HARI;
+            $denda = min((int)$d['hari_terlambat'] * TARIF_DENDA_PER_HARI, TARIF_DENDA_MAKSIMUM);
           ?>
           <tr>
             <td data-label="Anggota" style="font-weight:600;"><?= htmlspecialchars($d['nama_anggota']) ?> <br><small style="color:var(--muted); font-weight:400;">NIS <?= htmlspecialchars($d['nis']) ?></small></td>
@@ -61,11 +60,15 @@ $activeMenu = 'terlambat';
             <td data-label="Hari Terlambat"><span class="badge badge-habis"><?= (int)$d['hari_terlambat'] ?> hari</span></td>
             <td data-label="Estimasi Denda">Rp<?= number_format($denda, 0, ',', '.') ?></td>
             <td data-label="Aksi">
-              <form method="POST" action="proses_kembali.php" onsubmit="return confirm('Proses pengembalian buku ini? Denda: Rp<?= number_format($denda, 0, ',', '.') ?>')" style="margin:0;">
+              <?php if ($d['status'] === 'menunggu_konfirmasi'): ?>
+              <form method="POST" action="proses_kembali.php" onsubmit="return confirm('Konfirmasi pengembalian buku ini? Denda: Rp<?= number_format($denda, 0, ',', '.') ?>')" style="margin:0;">
                 <?= csrfField() ?>
                 <input type="hidden" name="id_transaksi" value="<?= $d['id_transaksi'] ?>">
-                <button type="submit" class="btn">Kembalikan</button>
+                <button type="submit" class="btn">Konfirmasi</button>
               </form>
+              <?php else: ?>
+              <span style="color:var(--text-muted); font-size:.78rem;">Menunggu pengajuan siswa</span>
+              <?php endif; ?>
             </td>
           </tr>
           <?php endforeach; ?>

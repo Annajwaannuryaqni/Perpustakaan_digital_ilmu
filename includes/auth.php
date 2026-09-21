@@ -1,5 +1,12 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path'     => '/',
+        'httponly' => true,
+        'samesite' => 'Lax',
+        // 'secure' => true, // aktifkan baris ini kalau situs sudah diakses via HTTPS
+    ]);
     session_start();
 }
 
@@ -47,4 +54,36 @@ function requirePetugas() {
 
 function petugasName() {
     return $_SESSION['petugas_nama'] ?? null;
+}
+
+// === PEMBATASAN PERCOBAAN LOGIN (ANTI BRUTE-FORCE) ===
+// $role dibedakan per jenis akun ('admin', 'petugas', 'siswa') supaya
+// percobaan gagal di satu role tidak memblokir role lain.
+define('LOGIN_MAX_ATTEMPTS', 5);
+define('LOGIN_BLOCK_SECONDS', 300); // 5 menit
+
+// Mengembalikan false jika belum diblokir, atau jumlah detik sisa blokir jika masih diblokir.
+function isLoginBlocked($role) {
+    $attempts = $_SESSION['login_attempts_' . $role] ?? 0;
+    $blockTime = $_SESSION['login_block_time_' . $role] ?? 0;
+    $sisaWaktu = LOGIN_BLOCK_SECONDS - (time() - $blockTime);
+
+    if ($attempts >= LOGIN_MAX_ATTEMPTS && $sisaWaktu > 0) {
+        return $sisaWaktu;
+    }
+
+    // Waktu blokir sudah lewat, reset hitungan supaya user bisa coba lagi.
+    if ($attempts >= LOGIN_MAX_ATTEMPTS) {
+        unset($_SESSION['login_attempts_' . $role], $_SESSION['login_block_time_' . $role]);
+    }
+    return false;
+}
+
+function recordFailedLogin($role) {
+    $_SESSION['login_attempts_' . $role] = ($_SESSION['login_attempts_' . $role] ?? 0) + 1;
+    $_SESSION['login_block_time_' . $role] = time();
+}
+
+function clearLoginAttempts($role) {
+    unset($_SESSION['login_attempts_' . $role], $_SESSION['login_block_time_' . $role]);
 }

@@ -1,6 +1,6 @@
 <?php
 require_once '../includes/auth.php';
-requireAdmin();
+requirePetugas();
 require_once '../config/database.php';
 
 $error = '';
@@ -17,6 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stok         = (int) $_POST['stok'];
     $lokasi_rak   = trim($_POST['lokasi_rak']);
     $deskripsi    = trim($_POST['deskripsi']);
+    $kualitas     = in_array($_POST['kualitas'] ?? '', ['Baik', 'Cukup', 'Rusak']) ? $_POST['kualitas'] : 'Baik';
     $nama_file_cover = null;
 
     // ---- Validasi: genre wajib dipilih ----
@@ -34,27 +35,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     // ---- Proses upload cover (kalau ada file yang dipilih) ----
     if (!$error && isset($_FILES['cover']) && $_FILES['cover']['error'] === UPLOAD_ERR_OK) {
-        $ekstensiOk = ['jpg', 'jpeg', 'png'];
-        $ekstensi = strtolower(pathinfo($_FILES['cover']['name'], PATHINFO_EXTENSION));
+        $mimeKeEkstensi = [
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+        ];
+        $maksUkuranBytes = 2 * 1024 * 1024; // batas 2MB
 
-        if (in_array($ekstensi, $ekstensiOk)) {
-            // Bikin nama file unik biar tidak bentrok antar buku
-            $nama_file_cover = 'cover_' . time() . '_' . rand(100,999) . '.' . $ekstensi;
-            $tujuan = '../uploads/' . $nama_file_cover;
-            move_uploaded_file($_FILES['cover']['tmp_name'], $tujuan);
+        if ($_FILES['cover']['size'] > $maksUkuranBytes) {
+            $error = 'Ukuran file cover maksimal 2MB.';
         } else {
-            $error = 'Format file cover harus JPG atau PNG.';
+            // Jangan percaya ekstensi nama file dari browser — cek isi file
+            // sungguhan pakai getimagesize(). Ini mencegah file yang bukan
+            // gambar asli (mis. file berbahaya yang cuma diganti nama jadi
+            // .jpg) lolos tersimpan di server.
+            $infoGambar = @getimagesize($_FILES['cover']['tmp_name']);
+
+            if ($infoGambar === false || !isset($mimeKeEkstensi[$infoGambar['mime']])) {
+                $error = 'File yang diupload bukan gambar JPG/PNG yang valid.';
+            } else {
+                // Bikin nama file unik biar tidak bentrok antar buku
+                $ekstensi = $mimeKeEkstensi[$infoGambar['mime']];
+                $nama_file_cover = 'cover_' . bin2hex(random_bytes(8)) . '.' . $ekstensi;
+                $tujuan = '../uploads/' . $nama_file_cover;
+
+                if (!move_uploaded_file($_FILES['cover']['tmp_name'], $tujuan)) {
+                    // Upload gagal disimpan ke server — jangan lanjut simpan
+                    // data buku dengan nama file cover yang sebenarnya tidak ada.
+                    $error = 'Gagal menyimpan file cover ke server. Silakan coba lagi.';
+                    $nama_file_cover = null;
+                }
+            }
         }
     }
 
     if (!$error) {
         $stmt = $koneksi->prepare("
-            INSERT INTO buku (kode_buku, judul, pengarang, penerbit, tahun_terbit, id_kategori, stok, lokasi_rak, deskripsi, cover)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO buku (kode_buku, judul, pengarang, penerbit, tahun_terbit, id_kategori, stok, lokasi_rak, deskripsi, cover, kualitas)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        $stmt->execute([$kode_buku, $judul, $pengarang, $penerbit, $tahun_terbit, $id_kategori, $stok, $lokasi_rak, $deskripsi, $nama_file_cover]);
+        $stmt->execute([$kode_buku, $judul, $pengarang, $penerbit, $tahun_terbit, $id_kategori, $stok, $lokasi_rak, $deskripsi, $nama_file_cover, $kualitas]);
 
-        header('Location: buku.php');
+        header('Location: data_buku.php');
         exit;
     }
 }
@@ -175,28 +196,7 @@ $kategoriList = $koneksi->query("SELECT * FROM kategori ORDER BY nama_kategori")
 
 </head>
 <body class="admin-page">
-  <button class="admin-menu-toggle" type="button" aria-label="Buka menu" onclick="document.body.classList.toggle('admin-menu-open')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="14" y2="17"/></svg></button>
-  <div class="admin-sidebar-overlay" onclick="document.body.classList.remove('admin-menu-open')"></div>
-  <aside class="admin-sidebar">
-    <div class="admin-sidebar-brand">
-      <div class="admin-brand-mark">P</div>
-      <div><strong>Perpustakaan</strong><small>Panel Admin</small></div>
-    </div>
-    <nav class="admin-side-nav" aria-label="Navigasi admin">
-      <div class="admin-side-label">MENU UTAMA</div>
-      <a href="dashboard.php" class="admin-side-link"><span class="admin-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="8" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.5"/></svg></span><span>Dashboard</span></a>
-      <a href="buku.php" class="admin-side-link"><span class="admin-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5c2.2-1 5-1 7 .3v13.7c-2-1.3-4.8-1.3-7-.3V5.5Z"/><path d="M20 5.5c-2.2-1-5-1-7 .3v13.7c2-1.3 4.8-1.3 7-.3V5.5Z"/></svg></span><span>Buku</span></a>
-      <a href="anggota.php" class="admin-side-link"><span class="admin-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5c0-3.3 2.5-5.5 5.5-5.5s5.5 2.2 5.5 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 14.3c2.4.3 4 2.2 4 5.2"/></svg></span><span>Anggota</span></a>
-      <a href="transaksi.php" class="admin-side-link"><span class="admin-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5h13.5L15 4.5"/><path d="M20 16.5H6.5L9 19.5"/></svg></span><span>Transaksi</span></a>
-      <a href="kunjungan.php" class="admin-side-link"><span class="admin-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/><line x1="8" y1="3" x2="8" y2="6.5"/><line x1="16" y1="3" x2="16" y2="6.5"/></svg></span><span>Kunjungan</span></a>
-      <a href="petugas.php" class="admin-side-link"><span class="admin-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="3"/><path d="M4 19.5c0-3 2.2-5 5-5s5 2 5 5"/><path d="M14.5 9.2h5M17 6.7v5"/></svg></span><span>Petugas</span></a>
-    </nav>
-    <div class="admin-sidebar-bottom">
-      <div class="admin-side-user"><span class="admin-avatar">A</span><span><strong>Admin</strong><small>Pengelola Perpustakaan</small></span></div>
-      <a href="logout.php" class="admin-logout-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H6.5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2H11"/><polyline points="15.5 8 19.5 12 15.5 16"/><line x1="19.5" y1="12" x2="9" y2="12"/></svg><span>Keluar</span></a>
-    </div>
-  </aside>
-  <main class="admin-main">
+  <?php $activeMenu = 'data_buku'; require_once '../includes/petugas_sidebar.php'; ?>
 
 
 
@@ -216,7 +216,7 @@ $kategoriList = $koneksi->query("SELECT * FROM kategori ORDER BY nama_kategori")
             <p>Lengkapi informasi koleksi secara terstruktur sebelum menyimpannya ke katalog perpustakaan.</p>
           </div>
         </div>
-        <a href="buku.php" class="form-back-link">
+        <a href="data_buku.php" class="form-back-link">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
           Kembali ke Buku
         </a>
@@ -293,6 +293,16 @@ $kategoriList = $koneksi->query("SELECT * FROM kategori ORDER BY nama_kategori")
                 <label for="lokasi_rak">Lokasi Rak</label>
                 <input id="lokasi_rak" type="text" name="lokasi_rak" value="<?= htmlspecialchars($_POST['lokasi_rak'] ?? '') ?>" placeholder="Contoh: A1 / Rak Fiksi">
               </div>
+              <div class="form-field">
+                <label for="kualitas">Kualitas Buku</label>
+                <?php $kualitasTerpilih = $_POST['kualitas'] ?? 'Baik'; ?>
+                <select id="kualitas" name="kualitas">
+                  <option value="Baik" <?= $kualitasTerpilih === 'Baik' ? 'selected' : '' ?>>Baik</option>
+                  <option value="Cukup" <?= $kualitasTerpilih === 'Cukup' ? 'selected' : '' ?>>Cukup</option>
+                  <option value="Rusak" <?= $kualitasTerpilih === 'Rusak' ? 'selected' : '' ?>>Rusak</option>
+                </select>
+                <span class="form-help">Kondisi fisik eksemplar buku saat ini.</span>
+              </div>
             </div>
           </section>
 
@@ -322,7 +332,7 @@ $kategoriList = $koneksi->query("SELECT * FROM kategori ORDER BY nama_kategori")
           </section>
 
           <div class="form-actions">
-            <a href="buku.php" class="btn btn-outline pro-btn pro-btn-secondary">
+            <a href="data_buku.php" class="btn btn-outline pro-btn pro-btn-secondary">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
               Batal
             </a>
@@ -349,7 +359,7 @@ $kategoriList = $koneksi->query("SELECT * FROM kategori ORDER BY nama_kategori")
     input.addEventListener('change', function(){
       const file=this.files && this.files[0];
       if(!file){ img.style.display='none'; empty.style.display='block'; return; }
-      if(!/^image\\/(jpeg|png)$/.test(file.type)){ this.value=''; img.style.display='none'; empty.style.display='block'; return; }
+      if(!/^image\/(jpeg|png)$/.test(file.type)){ this.value=''; img.style.display='none'; empty.style.display='block'; return; }
       const url=URL.createObjectURL(file);
       img.src=url; img.style.display='block'; empty.style.display='none';
       img.onload=function(){ URL.revokeObjectURL(url); };

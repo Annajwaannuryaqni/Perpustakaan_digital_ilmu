@@ -3,7 +3,11 @@ require_once '../includes/auth.php';
 require_once '../config/database.php';
 
 $error = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+$sisaBlokir = isLoginBlocked('admin');
+
+if ($sisaBlokir !== false) {
+    $error = 'Terlalu banyak percobaan login gagal. Silakan coba lagi dalam ' . ceil($sisaBlokir / 60) . ' menit.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
 
     $username = trim($_POST['username'] ?? '');
@@ -14,6 +18,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $admin = $stmt->fetch();
 
     if ($admin && password_verify($password, $admin['password'])) {
+        clearLoginAttempts('admin');
+        // Regenerasi ID sesi setelah login berhasil (mencegah session fixation),
+        // konsisten dengan yang sudah diterapkan di petugas/login.php
+        session_regenerate_id(true);
         $_SESSION['admin_id'] = $admin['id_admin'];
         $_SESSION['admin_nama'] = $admin['nama_lengkap'];
         $_SESSION['flash_notif'] = [
@@ -26,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: dashboard.php');
         exit;
     } else {
+        recordFailedLogin('admin');
         $error = 'Username atau password salah.';
     }
 }

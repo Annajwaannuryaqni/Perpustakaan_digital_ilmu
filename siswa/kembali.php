@@ -13,7 +13,7 @@ $stmt=$koneksi->prepare("
 SELECT t.*,b.judul,b.pengarang
 FROM transaksi t
 JOIN buku b ON b.id_buku=t.id_buku
-WHERE t.id_anggota=? AND t.status='dipinjam'
+WHERE t.id_anggota=? AND t.status IN ('dipinjam','menunggu_konfirmasi')
 ORDER BY t.tanggal_jatuh_tempo ASC
 ");
 $stmt->execute([$id_anggota]);
@@ -36,15 +36,35 @@ $bukuUntukRating=null;
 $id_rate=$_GET['rate']??null;
 
 if($id_rate){
+    // Form rating hanya boleh muncul kalau:
+    // 1. Transaksi ini benar-benar milik siswa yang login
+    // 2. Statusnya sudah selesai (dikembalikan/terlambat) — bukan yang masih dipinjam
+    // 3. Belum pernah ada komentar untuk transaksi ini — supaya siswa tidak bisa
+    //    membuka ulang link ?rate=X berkali-kali dan mengirim komentar berulang
+    //    untuk buku yang sama.
     $stmtRate=$koneksi->prepare("
     SELECT t.id_transaksi,b.judul,b.pengarang
     FROM transaksi t
     JOIN buku b ON b.id_buku=t.id_buku
-    WHERE t.id_transaksi=? AND t.id_anggota=?
+    WHERE t.id_transaksi=? AND t.id_anggota=? AND t.status IN ('dikembalikan','terlambat')
+    AND NOT EXISTS (SELECT 1 FROM rating r WHERE r.id_transaksi = t.id_transaksi)
     ");
     $stmtRate->execute([$id_rate,$id_anggota]);
     $bukuUntukRating=$stmtRate->fetch();
 }
+
+// Ambil buku yang sudah selesai dikembalikan tapi belum diberi rating,
+// supaya siswa punya jalan masuk ke form rating (sebelumnya tidak ada link kesini sama sekali)
+$stmtBelumRating = $koneksi->prepare("
+    SELECT t.id_transaksi, b.judul, b.pengarang
+    FROM transaksi t
+    JOIN buku b ON b.id_buku = t.id_buku
+    WHERE t.id_anggota = ? AND t.status IN ('dikembalikan','terlambat')
+    AND NOT EXISTS (SELECT 1 FROM rating r WHERE r.id_transaksi = t.id_transaksi)
+    ORDER BY t.tanggal_kembali DESC
+");
+$stmtBelumRating->execute([$id_anggota]);
+$daftarBelumRating = $stmtBelumRating->fetchAll();
 
 $namaBulan=[
 1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',
@@ -228,10 +248,14 @@ $tanggalIndonesia=date('d').' '.$namaBulan[(int)date('n')].' '.date('Y');
     </div>
 </div>
 
-<?php if($pesan==='sukses'&&!$bukuUntukRating): ?>
+<?php if($pesan==='diajukan'): ?>
+<div class="page-alert success">✓ Pengajuan pengembalian terkirim. Serahkan bukunya ke petugas untuk dikonfirmasi — denda (jika ada) baru dihitung final saat itu.</div>
+<?php elseif($pesan==='sukses'&&!$bukuUntukRating): ?>
 <div class="page-alert success">✓ Buku berhasil dikembalikan. Terima kasih!</div>
 <?php elseif($pesan==='rating_sukses'): ?>
 <div class="page-alert success">✓ Terima kasih atas rating dan komentarnya!</div>
+<?php elseif($pesan==='gagal'): ?>
+<div class="page-alert" style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;">✕ Gagal memproses pengembalian buku. Silakan coba lagi.</div>
 <?php endif; ?>
 
 <?php if($bukuUntukRating): ?>
@@ -320,6 +344,33 @@ paint(0,false);
 </script>
 <?php endif; ?>
 
+<?php if($daftarBelumRating): ?>
+<div class="borrow-section">
+    <div class="section-heading">
+        <h2>Beri Rating Buku yang Sudah Dikembalikan</h2>
+        <span><?= count($daftarBelumRating) ?> buku</span>
+    </div>
+    <div class="borrow-table">
+        <table>
+            <thead><tr><th>Judul</th><th>Aksi</th></tr></thead>
+            <tbody>
+            <?php foreach($daftarBelumRating as $r): ?>
+                <tr>
+                    <td data-label="Judul">
+                        <div class="book-title"><?= htmlspecialchars($r['judul']) ?></div>
+                        <div class="book-author"><?= htmlspecialchars($r['pengarang']) ?></div>
+                    </td>
+                    <td data-label="Aksi">
+                        <a href="kembali.php?rate=<?= $r['id_transaksi'] ?>" class="btn return-btn">Beri Rating</a>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+<?php endif; ?>
+
 <div class="borrow-section">
     <div class="section-heading">
         <h2>Buku yang Sedang Dipinjam</h2>
@@ -362,25 +413,35 @@ paint(0,false);
                     </td>
 
                     <td data-label="Status">
+                        <?php if($p['status']==='menunggu_konfirmasi'): ?>
+                        <span class="status-badge status-late">Menunggu Konfirmasi Petugas</span>
+                        <?php else: ?>
                         <span class="status-badge <?= $telat?'status-late':'status-ok' ?>">
                             <?= $telat?'Terlambat '.$hariTerlambat.' hari':'Masih dalam batas waktu' ?>
                         </span>
+                        <?php endif; ?>
                     </td>
 
                     <td data-label="Denda">
-                        <?php if($telat): ?>
-                        <span class="fine-badge">Rp<?= number_format($denda,0,',','.') ?></span>
+                        <?php if($p['status']==='menunggu_konfirmasi'): ?>
+                        <span style="color:#94a3b8">Dihitung saat konfirmasi</span>
+                        <?php elseif($telat): ?>
+                        <span class="fine-badge">Estimasi Rp<?= number_format($denda,0,',','.') ?></span>
                         <?php else: ?>
                         <span style="color:#94a3b8">-</span>
                         <?php endif; ?>
                     </td>
 
                     <td data-label="Aksi">
-                        <form method="POST" action="proses_kembali.php" onsubmit="return confirm('Kembalikan buku ini?<?= $telat?' Denda: Rp'.number_format($denda,0,',','.') : '' ?>')" style="margin:0">
+                        <?php if($p['status']==='menunggu_konfirmasi'): ?>
+                        <span style="color:#94a3b8;font-size:11px;">Sudah diajukan</span>
+                        <?php else: ?>
+                        <form method="POST" action="proses_kembali.php" onsubmit="return confirm('Ajukan pengembalian buku ini? Bawa fisik bukunya ke petugas untuk dikonfirmasi.<?= $telat?' Estimasi denda: Rp'.number_format($denda,0,',','.') : '' ?>')" style="margin:0">
                             <input type="hidden" name="id_transaksi" value="<?= $p['id_transaksi'] ?>">
                             <?= csrfField() ?>
                             <button type="submit" class="btn return-btn">Kembalikan</button>
                         </form>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>

@@ -36,13 +36,21 @@ if ($transaksi) {
     ");
     $stmtRating->execute([$id_buku, $id_anggota, $id_transaksi, $nilai]);
 
-    // Simpan komentar kalau diisi (opsional)
+    // Simpan komentar kalau diisi (opsional).
+    // Dicek dulu belum ada komentar untuk transaksi ini, supaya kalau form ini
+    // sampai di-submit ulang (mis. lewat back button atau permintaan manual),
+    // tidak tercipta komentar duplikat untuk transaksi yang sama.
     if ($isi_komentar !== '') {
-        $stmtKomentar = $koneksi->prepare("
-            INSERT INTO komentar (id_buku, id_anggota, id_transaksi, isi_komentar)
-            VALUES (?, ?, ?, ?)
-        ");
-        $stmtKomentar->execute([$id_buku, $id_anggota, $id_transaksi, $isi_komentar]);
+        $cekKomentar = $koneksi->prepare("SELECT 1 FROM komentar WHERE id_transaksi = ?");
+        $cekKomentar->execute([$id_transaksi]);
+
+        if (!$cekKomentar->fetch()) {
+            $stmtKomentar = $koneksi->prepare("
+                INSERT INTO komentar (id_buku, id_anggota, id_transaksi, isi_komentar)
+                VALUES (?, ?, ?, ?)
+            ");
+            $stmtKomentar->execute([$id_buku, $id_anggota, $id_transaksi, $isi_komentar]);
+        }
     }
 }
 

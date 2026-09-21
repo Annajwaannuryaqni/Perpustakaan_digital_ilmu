@@ -2,8 +2,31 @@
 require_once '../includes/auth.php';
 requireSiswa();
 require_once '../config/database.php';
+require_once '../includes/notification_helper.php';
+
+date_default_timezone_set('Asia/Jakarta');
 
 $MASA_PINJAM_HARI = 7;
+
+/* Jadwal operasional: Senin-Kamis 07:30-15:30, Jumat 07:30-15:00, Sabtu-Minggu tutup
+   (logika sama persis dengan siswa/presensi.php, supaya konsisten satu aplikasi) */
+$hariIniNum = (int)date('N');
+$jamSekarangCek = date('H:i:s');
+$jamBukaCek = null;
+$jamTutupCek = null;
+
+if ($hariIniNum >= 1 && $hariIniNum <= 4) {
+    $jamBukaCek = '07:30:00';
+    $jamTutupCek = '15:30:00';
+} elseif ($hariIniNum === 5) {
+    $jamBukaCek = '07:30:00';
+    $jamTutupCek = '15:00:00';
+}
+
+$perpustakaanBuka = false;
+if ($jamBukaCek !== null && $jamTutupCek !== null) {
+    $perpustakaanBuka = ($jamSekarangCek >= $jamBukaCek && $jamSekarangCek < $jamTutupCek);
+}
 
 $id_buku = (int)($_GET['id'] ?? $_POST['id_buku'] ?? 0);
 
@@ -26,12 +49,50 @@ if (!$buku) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
 
+    // Peminjaman hanya boleh diproses saat perpustakaan sedang buka —
+    // divalidasi di server (bukan cuma disembunyikan tombolnya di HTML),
+    // supaya tidak bisa disiasati dengan submit form manual di luar jam operasional.
+    if (!$perpustakaanBuka) {
+        header('Location: pinjam.php?pesan=tutup');
+        exit;
+    }
+
     $id_anggota          = $_SESSION['anggota_id'];
     $tanggal_pinjam       = date('Y-m-d');
     $tanggal_jatuh_tempo  = date('Y-m-d', strtotime("+{$MASA_PINJAM_HARI} days"));
 
+    // Siswa dengan denda yang belum lunas tidak boleh meminjam buku baru
+    // sampai dendanya diselesaikan — sebelumnya tidak ada pengecekan ini
+    // sama sekali sehingga denda tidak punya konsekuensi apa pun.
+    $cekDenda = $koneksi->prepare("
+        SELECT COALESCE(SUM(denda),0) AS total FROM transaksi
+        WHERE id_anggota = ? AND status_denda = 'Belum Lunas'
+    ");
+    $cekDenda->execute([$id_anggota]);
+    if ((float)$cekDenda->fetch()['total'] > 0) {
+        header('Location: pinjam.php?pesan=ada_denda');
+        exit;
+    }
+
     try {
         $koneksi->beginTransaction();
+
+        // BUG FIX: sebelumnya tidak ada pengecekan apakah anggota ini sudah
+        // sedang meminjam buku yang sama (status masih 'dipinjam'), sehingga
+        // satu anggota bisa punya lebih dari satu transaksi aktif untuk judul
+        // yang sama selama stoknya masih ada. Dicek & dikunci dulu di sini
+        // supaya tidak race condition dengan permintaan lain yang bersamaan.
+        $cekAktif = $koneksi->prepare("
+            SELECT id_transaksi FROM transaksi
+            WHERE id_anggota = ? AND id_buku = ? AND status = 'dipinjam'
+            FOR UPDATE
+        ");
+        $cekAktif->execute([$id_anggota, $id_buku]);
+        if ($cekAktif->fetch()) {
+            $koneksi->rollBack();
+            header('Location: pinjam.php?pesan=gagal_duplikat');
+            exit;
+        }
 
         // Kunci baris buku ini agar tidak ada request lain yang membaca stok basi
         // saat proses ini berjalan (mencegah race condition / peminjaman ganda).
@@ -64,6 +125,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id_transaksi = $koneksi->lastInsertId();
 
         $koneksi->commit();
+
+        // Beri tahu admin & petugas bahwa ada peminjaman baru dari siswa.
+        // Dibungkus try-catch sendiri: kalau pengiriman notifikasi gagal,
+        // peminjaman yang sudah berhasil di-commit di atas TIDAK ikut dianggap gagal.
+        try {
+            $namaSiswa = $koneksi->prepare("SELECT nama_lengkap FROM anggota WHERE id_anggota = ?");
+            $namaSiswa->execute([$id_anggota]);
+            $namaAnggota = $namaSiswa->fetchColumn() ?: 'Seorang siswa';
+            notifyStaff(
+                $koneksi,
+                'Peminjaman Baru',
+                $namaAnggota . ' meminjam buku "' . $buku['judul'] . '".',
+                'success',
+                'fa-book',
+                '#22c55e'
+            );
+        } catch (PDOException $e) {
+            // Notifikasi gagal terkirim, tapi peminjaman tetap sah — abaikan saja.
+        }
 
         header('Location: bukti_peminjaman.php?id=' . $id_transaksi);
         exit;
@@ -234,6 +314,11 @@ $stokTersedia = (int)$buku['stok'] > 0;
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5"/><path d="M12 16.2h.01"/></svg>
         <span>Maaf, stok buku ini sudah habis dan tidak bisa dipinjam saat ini.</span>
       </div>
+    <?php elseif (!$perpustakaanBuka): ?>
+      <div class="confirm-alert-gagal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5"/><path d="M12 16.2h.01"/></svg>
+        <span>Perpustakaan sedang tutup. Peminjaman hanya bisa dilakukan Senin-Kamis 07:30-15:30 dan Jumat 07:30-15:00.</span>
+      </div>
     <?php endif; ?>
 
     <div class="confirm-card">
@@ -305,7 +390,7 @@ $stokTersedia = (int)$buku['stok'] > 0;
 
       <div class="confirm-actions">
         <a href="pinjam.php" class="btn-outline btn">Batal</a>
-        <?php if ($stokTersedia): ?>
+        <?php if ($stokTersedia && $perpustakaanBuka): ?>
           <form method="POST" action="pinjam_konfirmasi.php?id=<?= $id_buku ?>" style="flex:1;">
             <?= csrfField() ?>
             <input type="hidden" name="id_buku" value="<?= $id_buku ?>">

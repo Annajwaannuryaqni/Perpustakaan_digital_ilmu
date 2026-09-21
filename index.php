@@ -13,14 +13,17 @@ $ratingSayaPerBuku = [];
 
 if ($idAnggotaLogin) {
     try {
-        // Ambil transaksi terakhir anggota untuk setiap buku yang pernah dipinjam.
+        // Ambil transaksi terakhir anggota untuk setiap buku yang pernah dipinjam
+        // DAN sudah selesai (dikembalikan/terlambat) — harus sama dengan syarat
+        // di rating_submit.php, supaya tombol rating tidak muncul untuk buku
+        // yang masih dipinjam (belum boleh dinilai).
         $stmtTR = $koneksi->prepare("
             SELECT t.id_buku, t.id_transaksi
             FROM transaksi t
             INNER JOIN (
                 SELECT id_buku, MAX(id_transaksi) AS max_id
                 FROM transaksi
-                WHERE id_anggota = ?
+                WHERE id_anggota = ? AND status IN ('dikembalikan', 'terlambat')
                 GROUP BY id_buku
             ) x ON x.max_id = t.id_transaksi
             WHERE t.id_anggota = ?
@@ -49,6 +52,10 @@ if ($idAnggotaLogin) {
 }
 
 if (isset($_SESSION['admin_id'])) { header('Location: admin/dashboard.php'); exit; }
+// BUG FIX: sebelumnya hanya admin yang di-redirect otomatis ke dashboard-nya
+// kalau membuka index.php publik ini; petugas yang sedang login malah tetap
+// melihat landing page publik. Disamakan perlakuannya dengan admin.
+if (isset($_SESSION['petugas_id'])) { header('Location: petugas/dashboard.php'); exit; }
 
 // Ambil SEMUA buku dengan stok > 0, dikelompokkan per genre
 $daftarBuku = $koneksi->query("
@@ -177,7 +184,7 @@ function icon($name, $class = 'w-5 h-5') {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Perpustakaan Digital Sekolah — Perpustakaan Digital Ilmu</title>
+<title>Perpustakaan Digital Ilmu — SMKN 1 Sanden</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
@@ -250,11 +257,6 @@ function icon($name, $class = 'w-5 h-5') {
   .side-link:hover .side-ind { transform: translateY(-50%) scaleY(1); }
   .side-link.active { background: linear-gradient(90deg, rgba(22,119,210,.12), rgba(22,119,210,0)); color:#1268bd; }
 
-  .slider-track { display: flex; transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
-  .slider-item { min-width: 100%; box-sizing: border-box; }
-  @keyframes floatY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-  .float-slow { animation: floatY 6s ease-in-out infinite; }
-
   .buku-card { transition: transform .4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .4s cubic-bezier(0.16, 1, 0.3, 1), border-color .3s ease; }
   .buku-card:hover { transform: translateY(-6px); border-color: rgba(22,119,210,.4); }
   .cover-img { transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -276,7 +278,7 @@ function icon($name, $class = 'w-5 h-5') {
   .genre-hidden, .buku-hidden { display: none !important; }
 
   /* =========================================================
-     MODAL DETAIL BUKU — PROFESSIONAL / RESPONSIVE
+     MODAL DETAIL BUKU
      ========================================================= */
   .book-modal-overlay{
     padding: 14px;
@@ -296,6 +298,14 @@ function icon($name, $class = 'w-5 h-5') {
     box-shadow:
       0 35px 80px -28px rgba(8,22,39,.42),
       0 12px 35px -20px rgba(22,119,210,.18);
+  }
+
+  @media (min-width: 769px){
+    .book-modal-panel{
+      width:min(100%,1080px);
+      height:min(90vh,780px);
+      grid-template-columns:minmax(310px,38%) minmax(0,1fr);
+    }
   }
 
   .book-modal-cover{
@@ -321,8 +331,14 @@ function icon($name, $class = 'w-5 h-5') {
     width:100%;
     height:100%;
     object-fit:contain;
-    padding: 18px;
-    filter: drop-shadow(0 18px 28px rgba(0,0,0,.28));
+    padding:10px 20px 72px;
+    filter:drop-shadow(0 22px 32px rgba(0,0,0,.32));
+    transition:transform .35s ease, filter .35s ease;
+  }
+
+  .book-modal-cover:hover img{
+    transform:scale(1.018);
+    filter:drop-shadow(0 26px 38px rgba(0,0,0,.36));
   }
 
   .book-cover-caption{
@@ -352,12 +368,16 @@ function icon($name, $class = 'w-5 h-5') {
   .book-modal-content{
     min-width:0;
     min-height:0;
+    height:100%;
     display:flex;
     flex-direction:column;
+    overflow:hidden;
     background:#fff;
   }
 
   .book-modal-scroll{
+    flex:1 1 auto;
+    min-width:0;
     min-height:0;
     overflow-y:auto;
     overscroll-behavior:contain;
@@ -374,7 +394,7 @@ function icon($name, $class = 'w-5 h-5') {
 
   .book-modal-header{
     position:relative;
-    padding:28px 30px 18px;
+    padding:25px 30px 17px;
     border-bottom:1px solid #eef2f7;
     background:
       radial-gradient(circle at 100% 0%, rgba(22,119,210,.08), transparent 34%),
@@ -422,8 +442,9 @@ function icon($name, $class = 'w-5 h-5') {
   .book-modal-rating{
     display:flex;
     align-items:center;
-    gap:10px;
-    margin-top:15px;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:12px;
   }
 
   .book-rating-score{
@@ -465,22 +486,29 @@ function icon($name, $class = 'w-5 h-5') {
   }
 
   .book-modal-body{
-    padding:22px 30px 28px;
+    padding:22px 30px 36px;
   }
 
   .book-info-grid{
     display:grid;
     grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:10px;
+    gap:12px;
     margin-bottom:22px;
   }
 
   .book-info-item{
     min-width:0;
-    padding:13px 14px;
+    padding:14px 15px;
     border:1px solid #e8eef5;
-    border-radius:14px;
-    background:#f8fbff;
+    border-radius:15px;
+    background:linear-gradient(135deg,#f8fbff 0%,#ffffff 100%);
+    transition:border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+  }
+
+  .book-info-item:hover{
+    border-color:#d6e6f7;
+    box-shadow:0 8px 22px rgba(15,39,66,.06);
+    transform:translateY(-1px);
   }
 
   .book-info-label{
@@ -505,20 +533,20 @@ function icon($name, $class = 'w-5 h-5') {
   }
 
   .book-info-value.available{
-     color:#047857;
-     display:flex;
-     align-items:center;
-     gap:7px;
-   }
+    color:#047857;
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
 
-   .availability-dot{
-     width:7px;
-     height:7px;
-     flex:0 0 7px;
-     border-radius:50%;
-     background:#16a34a;
-     box-shadow:0 0 0 4px rgba(22,163,74,.10);
-   }
+  .availability-dot{
+    width:7px;
+    height:7px;
+    flex:0 0 7px;
+    border-radius:50%;
+    background:#16a34a;
+    box-shadow:0 0 0 4px rgba(22,163,74,.10);
+  }
 
   .book-section{
     margin-top:20px;
@@ -543,8 +571,9 @@ function icon($name, $class = 'w-5 h-5') {
 
   .book-synopsis{
     color:#64748b;
-    font-size:12px;
-    line-height:1.8;
+    font-size:13px;
+    line-height:1.85;
+    max-width:78ch;
   }
 
   .book-rating-card{
@@ -660,26 +689,29 @@ function icon($name, $class = 'w-5 h-5') {
   }
 
   .book-modal-footer{
-    flex-shrink:0;
+    position:relative;
+    z-index:10;
+    flex:0 0 auto;
     display:grid;
     grid-template-columns:1fr 1fr;
-    gap:10px;
+    gap:12px;
     padding:14px 30px 16px;
     border-top:1px solid #eaf0f5;
-    background:rgba(255,255,255,.96);
+    background:rgba(255,255,255,.98);
     backdrop-filter:blur(12px);
+    box-shadow:0 -10px 24px rgba(15,23,42,.06);
   }
 
   .book-action{
-    min-height:44px;
+    min-height:48px;
     display:flex;
     align-items:center;
     justify-content:center;
-    gap:8px;
-    border-radius:13px;
-    font-size:11px;
+    gap:9px;
+    border-radius:14px;
+    font-size:12px;
     font-weight:800;
-    transition:.2s ease;
+    transition:transform .2s ease, box-shadow .2s ease, background .2s ease;
   }
 
   .book-action:hover{ transform:translateY(-1px); }
@@ -694,6 +726,13 @@ function icon($name, $class = 'w-5 h-5') {
     color:#334155;
     background:#f1f5f9;
     border:1px solid #e2e8f0;
+  }
+
+  .book-action:focus-visible,
+  .book-modal-close:focus-visible,
+  .rating-star-btn:focus-visible{
+    outline:3px solid rgba(37,99,235,.22);
+    outline-offset:2px;
   }
 
   @media (max-width: 768px){
@@ -713,7 +752,7 @@ function icon($name, $class = 'w-5 h-5') {
 
     .book-modal-header{ padding:20px 20px 16px; }
     .book-modal-body{ padding:18px 20px 24px; }
-    .book-modal-footer{ padding:12px 20px 14px; }
+    .book-modal-footer{ gap:10px; padding:12px 20px 14px; }
     .book-modal-close{ top:12px; right:12px; }
 
     .book-modal-title{ font-size:21px; }
@@ -744,8 +783,7 @@ function icon($name, $class = 'w-5 h-5') {
     .book-action{ transition:none !important; }
   }
 
-
-  /* ===== Homepage hero: match clean library landing reference ===== */
+  /* ===== Homepage hero: video landing ===== */
   .library-video-wrap {
     position: relative;
     width: 100%;
@@ -830,45 +868,45 @@ function icon($name, $class = 'w-5 h-5') {
   .cat-pill { transition: all .25s cubic-bezier(0.16, 1, 0.3, 1); }
   .cat-pill:hover { transform: translateY(-1px); }
 
-  /* ===== RATING DISPLAY - ALWAYS HORIZONTAL ===== */
+  /* ===== RATING DISPLAY - selalu horizontal ===== */
   .stars-row {
-    display: inline-flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    flex-wrap: nowrap !important;
-    gap: 2px !important;
-    width: max-content !important;
-    height: auto !important;
-    vertical-align: middle !important;
-    white-space: nowrap !important;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: 2px;
+    width: max-content;
+    height: auto;
+    vertical-align: middle;
+    white-space: nowrap;
   }
   .stars-row .star-slot {
-    display: inline-flex !important;
-    position: relative !important;
-    flex: 0 0 auto !important;
-    align-items: center !important;
-    justify-content: center !important;
+    display: inline-flex;
+    position: relative;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
     width: auto;
     height: auto;
-    line-height: 0 !important;
+    line-height: 0;
   }
   .stars-row .star-slot > svg {
-    display: block !important;
-    flex: 0 0 auto !important;
+    display: block;
+    flex: 0 0 auto;
   }
   .stars-row .star-fill {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    bottom: 0 !important;
-    overflow: hidden !important;
-    display: block !important;
-    pointer-events: none !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    overflow: hidden;
+    display: block;
+    pointer-events: none;
   }
   .stars-row .star-fill > svg {
-    display: block !important;
-    max-width: none !important;
+    display: block;
+    max-width: none;
   }
 
   /* ===== Interactive Rating ===== */
@@ -967,147 +1005,6 @@ function icon($name, $class = 'w-5 h-5') {
   @media (max-width: 480px) {
     .star-input-horizontal { justify-content: center; gap: 1px; }
     .rating-star-btn { font-size: 31px; }
-  }
-
-
-  /* =========================================================
-     FINAL POLISH — MODAL DETAIL BUKU (khusus layar lebar,
-     supaya tidak menimpa layout 1 kolom di HP)
-     ========================================================= */
-  @media (min-width: 769px){
-    .book-modal-panel{
-      width:min(100%,1080px);
-      height:min(90vh,780px);
-      grid-template-columns:minmax(310px,38%) minmax(0,1fr);
-    }
-  }
-
-  .book-modal-cover img{
-    padding:10px 20px 72px;
-    filter:drop-shadow(0 22px 32px rgba(0,0,0,.32));
-    transition:transform .35s ease,filter .35s ease;
-  }
-
-  .book-modal-cover:hover img{
-    transform:scale(1.018);
-    filter:drop-shadow(0 26px 38px rgba(0,0,0,.36));
-  }
-
-  .book-modal-content{
-    height:100%;
-    overflow:hidden;
-  }
-
-  .book-modal-scroll{
-    flex:1 1 auto;
-    min-width:0;
-  }
-
-  .book-modal-header{
-    padding:25px 30px 17px;
-  }
-
-  .book-modal-rating{
-    flex-wrap:wrap;
-    gap:8px;
-    margin-top:12px;
-  }
-
-  .book-info-grid{
-    gap:12px;
-  }
-
-  .book-info-item{
-    padding:14px 15px;
-    border-radius:15px;
-    background:linear-gradient(135deg,#f8fbff 0%,#ffffff 100%);
-    transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease;
-  }
-
-  .book-info-item:hover{
-    border-color:#d6e6f7;
-    box-shadow:0 8px 22px rgba(15,39,66,.06);
-    transform:translateY(-1px);
-  }
-
-  .book-info-value.available{
-    display:flex;
-    align-items:center;
-    gap:7px;
-  }
-
-  .availability-dot{
-    width:7px;
-    height:7px;
-    flex:0 0 7px;
-    border-radius:50%;
-    background:#16a34a;
-    box-shadow:0 0 0 4px rgba(22,163,74,.10);
-  }
-
-  .book-synopsis{
-    font-size:13px;
-    line-height:1.85;
-    max-width:78ch;
-  }
-
-  .book-modal-body{
-    padding-bottom:36px;
-  }
-
-  .book-modal-footer{
-    flex:0 0 auto;
-    position:relative;
-    z-index:10;
-    gap:12px;
-    padding:14px 30px 16px;
-    background:rgba(255,255,255,.98);
-    box-shadow:0 -10px 24px rgba(15,23,42,.06);
-  }
-
-  .book-action{
-    min-height:48px;
-    border-radius:14px;
-    font-size:12px;
-    gap:9px;
-    transition:transform .2s ease,box-shadow .2s ease,background .2s ease;
-  }
-
-  .book-action:focus-visible,
-  .book-modal-close:focus-visible,
-  .rating-star-btn:focus-visible{
-    outline:3px solid rgba(37,99,235,.22);
-    outline-offset:2px;
-  }
-
-  @media (max-width:768px){
-    .book-modal-panel{
-      width:100%;
-      height:min(95dvh,840px);
-    }
-
-    .book-modal-cover img{
-      padding:8px 16px 58px;
-    }
-
-    .book-modal-footer{
-      gap:10px;
-      padding:12px 20px 14px;
-    }
-  }
-
-  @media (max-width:480px){
-    .book-modal-panel{
-      grid-template-rows:195px minmax(0,1fr);
-    }
-
-    .book-modal-cover{
-      min-height:195px;
-    }
-
-    .book-modal-cover img{
-      padding:6px 12px 48px;
-    }
   }
 
   /* =========================================================
@@ -1258,7 +1155,7 @@ function icon($name, $class = 'w-5 h-5') {
           aria-label="Video pengenalan Perpustakaan Digital"
         >
           <!-- Ganti path video di bawah jika nama file video Anda berbeda. -->
-          <source src="assets/video/gods.mp4" type="video/mp4">
+          <source src="assets/video/perpustakaan.mp4" type="video/mp4">
           Browser Anda tidak mendukung pemutaran video.
         </video>
         <button
@@ -1632,6 +1529,19 @@ function icon($name, $class = 'w-5 h-5') {
                   <span class="book-info-label">Ketersediaan</span>
                   <span class="book-info-value available"><span class="availability-dot" aria-hidden="true"></span><?= (int)$b['stok'] ?> buku tersedia</span>
                 </div>
+
+                <?php
+                  $kualitasBuku = $b['kualitas'] ?? 'Baik';
+                  $warnaKualitas = ['Baik' => '#047857', 'Cukup' => '#b45309', 'Rusak' => '#dc2626'][$kualitasBuku] ?? '#047857';
+                  $dotKualitas = ['Baik' => '#16a34a', 'Cukup' => '#f59e0b', 'Rusak' => '#dc2626'][$kualitasBuku] ?? '#16a34a';
+                ?>
+                <div class="book-info-item">
+                  <span class="book-info-label">Kualitas Buku</span>
+                  <span class="book-info-value available" style="color:<?= $warnaKualitas ?>;">
+                    <span class="availability-dot" aria-hidden="true" style="background:<?= $dotKualitas ?>;box-shadow:0 0 0 4px <?= $dotKualitas ?>1a;"></span>
+                    <?= htmlspecialchars($kualitasBuku) ?>
+                  </span>
+                </div>
               </div>
 
               <!-- Sinopsis -->
@@ -1881,48 +1791,6 @@ function icon($name, $class = 'w-5 h-5') {
       revealTargets.forEach(el => io.observe(el));
     } else {
       revealTargets.forEach(el => el.classList.add('in-view'));
-    }
-
-    /* ===== Slider ===== */
-    let currentSlide = 0;
-    const sliderTrack = document.getElementById('heroSlider');
-    const totalSlides = sliderTrack ? sliderTrack.children.length : 0;
-    const dots = document.querySelectorAll('.slider-dot');
-
-    function updateSlider() {
-      if (!sliderTrack) return;
-      sliderTrack.style.transform = `translateX(-${currentSlide * 100}%)`;
-      dots.forEach((dot, idx) => {
-        if (idx === currentSlide) {
-          dot.classList.add('bg-ocean-400', 'w-6');
-          dot.classList.remove('bg-white/40', 'w-2');
-        } else {
-          dot.classList.remove('bg-ocean-400', 'w-6');
-          dot.classList.add('bg-white/40', 'w-2');
-        }
-      });
-    }
-
-    function nextSlide() {
-      currentSlide = (currentSlide + 1) % totalSlides;
-      updateSlider();
-    }
-
-    function prevSlide() {
-      currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
-      updateSlider();
-    }
-
-    function goToSlide(index) {
-      currentSlide = index;
-      updateSlider();
-    }
-
-    let sliderInterval = setInterval(nextSlide, 5000);
-    const heroSliderContainer = document.querySelector('.group');
-    if (heroSliderContainer) {
-      heroSliderContainer.addEventListener('mouseenter', () => clearInterval(sliderInterval));
-      heroSliderContainer.addEventListener('mouseleave', () => sliderInterval = setInterval(nextSlide, 5000));
     }
 
     /* ===== Interactive Rating ===== */

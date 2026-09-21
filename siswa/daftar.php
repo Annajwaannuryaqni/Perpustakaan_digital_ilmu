@@ -1,6 +1,7 @@
 <?php
 require_once '../includes/auth.php';
 require_once '../config/database.php';
+require_once '../includes/notification_helper.php';
 
 $error = '';
 $success = false;
@@ -79,6 +80,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
 
                 $success = true;
+
+                // Beri tahu admin (& petugas) ada pendaftaran anggota baru.
+                // Dibungkus try-catch sendiri: kalau notifikasi gagal terkirim,
+                // pendaftaran yang sudah berhasil TIDAK ikut ditampilkan sebagai gagal.
+                try {
+                    notifyStaff(
+                        $koneksi,
+                        'Anggota Baru',
+                        $nama_lengkap . ' (' . $kelas . ') baru saja mendaftar sebagai anggota.',
+                        'info',
+                        'fa-user-plus',
+                        '#4facfe'
+                    );
+                } catch (PDOException $e) {
+                    // Notifikasi gagal terkirim, tapi pendaftaran tetap sah — abaikan saja.
+                }
 
             } catch (PDOException $e) {
                 // Lapisan pertahanan kedua: kalau dua orang daftar dengan NIS/username
@@ -583,7 +600,7 @@ textarea.form-input{
 
 <div id="toast-container"></div>
 <audio id="notificationSound" preload="auto">
-    <source src="../assets/sound/notification.mp3" type="audio/mpeg">
+    <source src="../assets/sounds/notification.mp3" type="audio/mpeg">
 </audio>
 <script src="../assets/js/notification.js"></script>
 

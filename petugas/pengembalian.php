@@ -2,8 +2,7 @@
 require_once '../includes/auth.php';
 requirePetugas();
 require_once '../config/database.php';
-
-const TARIF_DENDA_PER_HARI = 1000; // Rp1.000 / hari keterlambatan, sama dengan siswa/proses_kembali.php
+require_once '../config/constants.php'; // TARIF_DENDA_PER_HARI — satu sumber tarif denda untuk seluruh aplikasi
 
 $pesan = $_GET['pesan'] ?? '';
 $q = trim($_GET['q'] ?? '');
@@ -14,7 +13,7 @@ if ($q !== '') {
         FROM transaksi t
         JOIN anggota a ON a.id_anggota = t.id_anggota
         JOIN buku b ON b.id_buku = t.id_buku
-        WHERE t.status = 'dipinjam'
+        WHERE t.status = 'menunggu_konfirmasi'
           AND (a.nama_lengkap LIKE :kw OR a.nis LIKE :kw OR b.judul LIKE :kw)
         ORDER BY t.tanggal_jatuh_tempo ASC
         LIMIT 40
@@ -27,7 +26,7 @@ if ($q !== '') {
         FROM transaksi t
         JOIN anggota a ON a.id_anggota = t.id_anggota
         JOIN buku b ON b.id_buku = t.id_buku
-        WHERE t.status = 'dipinjam'
+        WHERE t.status = 'menunggu_konfirmasi'
         ORDER BY t.tanggal_jatuh_tempo ASC
         LIMIT 40
     ")->fetchAll();
@@ -40,7 +39,7 @@ $activeMenu = 'pengembalian';
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pengembalian - Panel Petugas</title>
+<title>Konfirmasi Pengembalian - Panel Petugas</title>
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body class="admin-page">
@@ -49,8 +48,8 @@ $activeMenu = 'pengembalian';
   <div class="container">
     <div class="page-head">
       <div>
-        <h1>Proses Pengembalian</h1>
-        <p>Cari transaksi peminjaman yang sedang aktif untuk diproses pengembaliannya.</p>
+        <h1>Konfirmasi Pengembalian</h1>
+        <p>Daftar ini hanya berisi pengembalian yang sudah diajukan sendiri oleh siswa. Petugas tinggal mengecek fisik bukunya lalu konfirmasi.</p>
       </div>
     </div>
 
@@ -82,7 +81,7 @@ $activeMenu = 'pengembalian';
               $jatuhTempo = strtotime($p['tanggal_jatuh_tempo']);
               $telat = $hariIni > $jatuhTempo;
               $hariTerlambat = $telat ? floor(($hariIni - $jatuhTempo) / 86400) : 0;
-              $denda = $hariTerlambat * TARIF_DENDA_PER_HARI;
+              $denda = min($hariTerlambat * TARIF_DENDA_PER_HARI, TARIF_DENDA_MAKSIMUM);
           ?>
           <tr>
             <td data-label="Anggota" style="font-weight:600;"><?= htmlspecialchars($p['nama_anggota']) ?> <br><small style="color:var(--muted); font-weight:400;">NIS <?= htmlspecialchars($p['nis']) ?></small></td>
@@ -90,6 +89,7 @@ $activeMenu = 'pengembalian';
             <td data-label="Judul Buku"><?= htmlspecialchars($p['judul']) ?></td>
             <td data-label="Jatuh Tempo"><?= $p['tanggal_jatuh_tempo'] ?></td>
             <td data-label="Status">
+              <span class="badge badge-habis">Diajukan Siswa</span>
               <?php if ($telat): ?>
                 <span class="badge badge-habis">Terlambat <?= $hariTerlambat ?> hari</span>
               <?php else: ?>
@@ -97,17 +97,17 @@ $activeMenu = 'pengembalian';
               <?php endif; ?>
             </td>
             <td data-label="Aksi">
-              <form method="POST" action="proses_kembali.php" onsubmit="return confirm('Proses pengembalian buku ini?<?= $telat ? ' Denda: Rp' . number_format($denda, 0, ',', '.') : '' ?>')" style="margin:0;">
+              <form method="POST" action="proses_kembali.php" onsubmit="return confirm('Konfirmasi pengembalian buku ini?<?= $telat ? ' Denda: Rp' . number_format($denda, 0, ',', '.') : '' ?>')" style="margin:0;">
                 <?= csrfField() ?>
                 <input type="hidden" name="id_transaksi" value="<?= $p['id_transaksi'] ?>">
-                <button type="submit" class="btn">Kembalikan</button>
+                <button type="submit" class="btn">Konfirmasi</button>
               </form>
             </td>
           </tr>
           <?php endforeach; ?>
           <?php if (!$daftarPinjaman): ?>
           <tr><td colspan="6" style="text-align:center;">
-            <?= $q !== '' ? 'Tidak ada peminjaman aktif yang cocok dengan pencarian.' : 'Tidak ada peminjaman yang sedang aktif.' ?>
+            <?= $q !== '' ? 'Tidak ada pengajuan pengembalian yang cocok dengan pencarian.' : 'Belum ada pengajuan pengembalian dari siswa.' ?>
           </td></tr>
           <?php endif; ?>
         </tbody>

@@ -117,6 +117,10 @@ $activeMenu = 'peminjaman';
 
     <?php if ($pesan === 'gagal_stok'): ?>
       <p class="alert alert-gagal">Peminjaman gagal, stok buku sudah habis. Silakan pilih buku lain.</p>
+    <?php elseif ($pesan === 'ada_denda'): ?>
+      <p class="alert alert-gagal">Anggota ini masih punya denda yang belum lunas. Selesaikan pembayaran dendanya dulu (menu Denda) sebelum meminjamkan buku baru.</p>
+    <?php elseif ($pesan === 'gagal_duplikat'): ?>
+      <p class="alert alert-gagal">Anggota ini sudah sedang meminjam buku yang sama dan belum mengembalikannya.</p>
     <?php elseif ($pesan === 'gagal'): ?>
       <p class="alert alert-gagal">Peminjaman gagal diproses. Silakan coba lagi.</p>
     <?php endif; ?>

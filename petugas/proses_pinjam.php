@@ -22,8 +22,36 @@ if (!$cekAnggota->fetch()) {
     exit;
 }
 
+// Siswa dengan denda yang belum lunas tidak boleh dipinjamkan buku baru
+// sampai dendanya diselesaikan — aturan yang sama seperti di alur
+// peminjaman mandiri siswa (siswa/pinjam_konfirmasi.php), supaya
+// kebijakannya konsisten mau lewat jalur mana pun siswa meminjam.
+$cekDenda = $koneksi->prepare("
+    SELECT COALESCE(SUM(denda),0) AS total FROM transaksi
+    WHERE id_anggota = ? AND status_denda = 'Belum Lunas'
+");
+$cekDenda->execute([$id_anggota]);
+if ((float)$cekDenda->fetch()['total'] > 0) {
+    header('Location: peminjaman.php?anggota=' . $id_anggota . '&pesan=ada_denda');
+    exit;
+}
+
 try {
     $koneksi->beginTransaction();
+
+    // BUG FIX: cegah anggota memiliki lebih dari satu transaksi aktif untuk
+    // buku yang sama (sebelumnya tidak dicek sama sekali di alur petugas ini).
+    $cekAktif = $koneksi->prepare("
+        SELECT id_transaksi FROM transaksi
+        WHERE id_anggota = ? AND id_buku = ? AND status = 'dipinjam'
+        FOR UPDATE
+    ");
+    $cekAktif->execute([$id_anggota, $id_buku]);
+    if ($cekAktif->fetch()) {
+        $koneksi->rollBack();
+        header('Location: peminjaman.php?anggota=' . $id_anggota . '&pesan=gagal_duplikat');
+        exit;
+    }
 
     // Kunci baris buku ini agar tidak ada request lain yang membaca stok basi
     // saat proses ini berjalan (mencegah race condition / peminjaman ganda).

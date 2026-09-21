@@ -9,8 +9,11 @@ if (isset($_SESSION['petugas_id'])) {
 }
 
 $error = '';
+$sisaBlokir = isLoginBlocked('petugas');
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($sisaBlokir !== false) {
+    $error = 'Terlalu banyak percobaan login gagal. Silakan coba lagi dalam ' . ceil($sisaBlokir / 60) . ' menit.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
 
     $username = trim($_POST['username'] ?? '');
@@ -21,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $petugas = $stmt->fetch();
 
     if ($petugas && password_verify($password, $petugas['password'])) {
+        clearLoginAttempts('petugas');
         if ($petugas['status'] === 'nonaktif') {
             $error = 'Akun Petugas sedang dinonaktifkan. Hubungi Administrator.';
         } else {
@@ -40,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
     } else {
+        recordFailedLogin('petugas');
         $error = 'Username atau password salah.';
     }
 }

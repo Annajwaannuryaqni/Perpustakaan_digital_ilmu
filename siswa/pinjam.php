@@ -149,6 +149,12 @@ $totalGenre = count($bukuPerGenre);
 <p class="alert alert-sukses">Peminjaman berhasil! Jangan lupa kembalikan tepat waktu.</p>
 <?php elseif($pesan==='gagal'): ?>
 <p class="alert alert-gagal">Peminjaman gagal, stok buku mungkin sudah habis.</p>
+<?php elseif($pesan==='gagal_duplikat'): ?>
+<p class="alert alert-gagal">Kamu masih memiliki pinjaman aktif untuk buku ini. Kembalikan dulu sebelum meminjam lagi.</p>
+<?php elseif($pesan==='ada_denda'): ?>
+<p class="alert alert-gagal">Kamu masih punya denda yang belum lunas. Selesaikan pembayaran denda ke petugas sebelum meminjam buku baru.</p>
+<?php elseif($pesan==='tutup'): ?>
+<p class="alert alert-gagal">Perpustakaan sedang tutup. Peminjaman hanya bisa dilakukan Senin-Kamis 07:30-15:30 dan Jumat 07:30-15:00.</p>
 <?php endif; ?>
 
 <div class="catalog-card">

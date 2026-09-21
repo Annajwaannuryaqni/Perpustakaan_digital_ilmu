@@ -34,7 +34,7 @@ $activeMenu = 'data_anggota';
     <div class="page-head">
       <div>
         <h1>Data Anggota</h1>
-        <p>Total <?= count($daftarAnggota) ?> anggota ditampilkan<?= $keyword !== '' ? ' untuk pencarian "' . htmlspecialchars($keyword) . '"' : '' ?>. Petugas hanya dapat melihat, pengelolaan data dilakukan oleh Administrator.</p>
+        <p>Total <?= count($daftarAnggota) ?> anggota ditampilkan<?= $keyword !== '' ? ' untuk pencarian "' . htmlspecialchars($keyword) . '"' : '' ?>. Petugas hanya dapat melihat — pendaftaran anggota baru dilakukan mandiri oleh siswa lewat halaman registrasi.</p>
       </div>
     </div>
 

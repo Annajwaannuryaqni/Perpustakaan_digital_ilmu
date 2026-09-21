@@ -2,8 +2,7 @@
 require_once '../includes/auth.php';
 requireSiswa();
 require_once '../config/database.php';
-
-const TARIF_DENDA_PER_HARI = 1000; // Rp1.000 / hari keterlambatan (estimasi tampilan, sama seperti kembali.php)
+require_once '../config/constants.php'; // TARIF_DENDA_PER_HARI — satu sumber tarif denda untuk seluruh aplikasi
 
 $id_anggota = $_SESSION['anggota_id'];
 
@@ -12,7 +11,7 @@ $stmtDipinjam = $koneksi->prepare("
     SELECT t.*, b.judul, b.pengarang, b.cover
     FROM transaksi t
     JOIN buku b ON b.id_buku = t.id_buku
-    WHERE t.id_anggota = ? AND t.status = 'dipinjam'
+    WHERE t.id_anggota = ? AND t.status IN ('dipinjam','menunggu_konfirmasi')
     ORDER BY t.tanggal_jatuh_tempo ASC
 ");
 $stmtDipinjam->execute([$id_anggota]);
@@ -30,13 +29,16 @@ foreach ($bukuDipinjam as $p) {
     }
 }
 
-// Total denda yang sudah tercatat dari riwayat pengembalian
-$stmtDendaTercatat = $koneksi->prepare("SELECT COALESCE(SUM(denda),0) AS total FROM transaksi WHERE id_anggota = ?");
+// Total denda yang MASIH HARUS DIBAYAR (bukan seluruh denda historis —
+// kalau sudah ditandai Lunas oleh admin, tidak lagi dihitung di sini,
+// supaya siswa tidak terus melihat tagihan yang sebenarnya sudah lunas)
+$stmtDendaTercatat = $koneksi->prepare("SELECT COALESCE(SUM(denda),0) AS total FROM transaksi WHERE id_anggota = ? AND status_denda = 'Belum Lunas'");
 $stmtDendaTercatat->execute([$id_anggota]);
 $dendaTercatat = $stmtDendaTercatat->fetch()['total'];
 
-// Jumlah buku yang sudah pernah dikembalikan
-$stmtDikembalikan = $koneksi->prepare("SELECT COUNT(*) AS total FROM transaksi WHERE id_anggota = ? AND status <> 'dipinjam'");
+// Jumlah buku yang sudah pernah dikembalikan (menunggu_konfirmasi belum
+// dihitung selesai karena masih menunggu verifikasi fisik oleh petugas)
+$stmtDikembalikan = $koneksi->prepare("SELECT COUNT(*) AS total FROM transaksi WHERE id_anggota = ? AND status NOT IN ('dipinjam','menunggu_konfirmasi')");
 $stmtDikembalikan->execute([$id_anggota]);
 $totalDikembalikan = $stmtDikembalikan->fetch()['total'];
 
@@ -201,7 +203,9 @@ function siswaIcon($name, $class = 'ic') {
             <div class="loan-title"><?= htmlspecialchars($p['judul']) ?></div>
             <div class="loan-meta">Pinjam: <?= htmlspecialchars($p['tanggal_pinjam']) ?> &middot; Jatuh tempo: <?= htmlspecialchars($p['tanggal_jatuh_tempo']) ?></div>
           </div>
-          <?php if ($telat): ?>
+          <?php if ($p['status'] === 'menunggu_konfirmasi'): ?>
+            <span class="badge badge-habis">Menunggu Konfirmasi</span>
+          <?php elseif ($telat): ?>
             <span class="badge badge-habis">Terlambat</span>
           <?php else: ?>
             <span class="badge badge-ok">Dipinjam</span>

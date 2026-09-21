@@ -169,7 +169,7 @@
   </main>
 
   <footer class="bg-navy-950 text-slate-400 text-xs text-center px-4 py-5 border-t border-sky-900/30">
-    © 2026 Perpustakaan Digital Sekolah · Pusat Bantuan
+    © 2026 Perpustakaan Digital Sekolah. All Rights Reserved BY Annajwa Annur Yaqni - SMKN 1 SANDEN.
   </footer>
 
   <script>

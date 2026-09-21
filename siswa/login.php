@@ -3,8 +3,11 @@ require_once '../includes/auth.php';
 require_once '../config/database.php';
 
 $error = '';
+$sisaBlokir = isLoginBlocked('siswa');
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($sisaBlokir !== false) {
+    $error = 'Terlalu banyak percobaan login gagal. Silakan coba lagi dalam ' . ceil($sisaBlokir / 60) . ' menit.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
 
     $username = trim($_POST['username'] ?? '');
@@ -21,9 +24,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $anggota = $stmt->fetch();
 
     if ($anggota && password_verify($password, $anggota['password'])) {
+        clearLoginAttempts('siswa');
         if ($anggota['status'] === 'nonaktif') {
             $error = "Akun sedang dinonaktifkan. Hubungi admin perpustakaan.";
         } else {
+            // Regenerasi ID sesi setelah login berhasil (mencegah session fixation),
+            // konsisten dengan yang sudah diterapkan di petugas/login.php
+            session_regenerate_id(true);
             $_SESSION['anggota_id'] = $anggota['id_anggota'];
             $_SESSION['anggota_nama'] = $anggota['nama_lengkap'];
 
@@ -39,6 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
     } else {
+        recordFailedLogin('siswa');
         $error = "Username atau Password salah.";
     }
 }

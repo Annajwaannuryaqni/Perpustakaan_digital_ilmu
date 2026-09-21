@@ -54,8 +54,12 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&!$sudahPresensi){
     if(!$bolehPresensi){
         $pesan='tutup';
     }else{
-        $stmt=$koneksi->prepare("INSERT INTO kunjungan (id_anggota) VALUES (?)");
-        $stmt->execute([$id_anggota]);
+        // FIX: waktu diambil dari PHP (sudah Asia/Jakarta), bukan dibiarkan
+        // diisi otomatis oleh default current_timestamp() milik MySQL,
+        // karena timezone session MySQL di server hosting bisa berbeda (UTC).
+        $waktuSekarang = date('Y-m-d H:i:s');
+        $stmt=$koneksi->prepare("INSERT INTO kunjungan (id_anggota, waktu_kunjungan) VALUES (?, ?)");
+        $stmt->execute([$id_anggota, $waktuSekarang]);
         $sudahPresensi=true;
         $pesan='sukses';
     }
