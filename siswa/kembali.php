@@ -12,7 +12,7 @@ $pesan=$_GET['pesan']??'';
 $stmt=$koneksi->prepare("
 SELECT t.*,b.judul,b.pengarang
 FROM transaksi t
-JOIN buku b ON b.id_buku=t.id_buku
+LEFT JOIN buku b ON b.id_buku=t.id_buku
 WHERE t.id_anggota=? AND t.status IN ('dipinjam','menunggu_konfirmasi')
 ORDER BY t.tanggal_jatuh_tempo ASC
 ");
@@ -24,11 +24,16 @@ $totalTerlambat=0;
 $totalDendaKeseluruhan=0;
 
 foreach($daftarPinjaman as $p){
-    $hariIniHitung=strtotime(date('Y-m-d'));
+    // Buku yang sudah diajukan pengembaliannya (menunggu_konfirmasi) dendanya
+    // terkunci di tanggal pengajuan, bukan terus jalan sampai hari ini.
+    $tanggalAcuanHitung = ($p['status']==='menunggu_konfirmasi')
+        ? strtotime($p['tanggal_pengajuan_kembali'] ?? date('Y-m-d'))
+        : strtotime(date('Y-m-d'));
     $jatuhTempoHitung=strtotime($p['tanggal_jatuh_tempo']);
-    if($hariIniHitung>$jatuhTempoHitung){
+    if($tanggalAcuanHitung>$jatuhTempoHitung){
         $totalTerlambat++;
-        $totalDendaKeseluruhan+=floor(($hariIniHitung-$jatuhTempoHitung)/86400)*TARIF_DENDA_PER_HARI;
+        $hariTerlambatHitung=floor(($tanggalAcuanHitung-$jatuhTempoHitung)/86400);
+        $totalDendaKeseluruhan+=min($hariTerlambatHitung*TARIF_DENDA_PER_HARI, TARIF_DENDA_MAKSIMUM);
     }
 }
 
@@ -43,9 +48,9 @@ if($id_rate){
     //    membuka ulang link ?rate=X berkali-kali dan mengirim komentar berulang
     //    untuk buku yang sama.
     $stmtRate=$koneksi->prepare("
-    SELECT t.id_transaksi,b.judul,b.pengarang
+    SELECT t.id_transaksi,b.judul,b.deleted_at,b.pengarang
     FROM transaksi t
-    JOIN buku b ON b.id_buku=t.id_buku
+    LEFT JOIN buku b ON b.id_buku=t.id_buku
     WHERE t.id_transaksi=? AND t.id_anggota=? AND t.status IN ('dikembalikan','terlambat')
     AND NOT EXISTS (SELECT 1 FROM rating r WHERE r.id_transaksi = t.id_transaksi)
     ");
@@ -56,9 +61,9 @@ if($id_rate){
 // Ambil buku yang sudah selesai dikembalikan tapi belum diberi rating,
 // supaya siswa punya jalan masuk ke form rating (sebelumnya tidak ada link kesini sama sekali)
 $stmtBelumRating = $koneksi->prepare("
-    SELECT t.id_transaksi, b.judul, b.pengarang
+    SELECT t.id_transaksi, b.judul, b.deleted_at, b.pengarang
     FROM transaksi t
-    JOIN buku b ON b.id_buku = t.id_buku
+    LEFT JOIN buku b ON b.id_buku = t.id_buku
     WHERE t.id_anggota = ? AND t.status IN ('dikembalikan','terlambat')
     AND NOT EXISTS (SELECT 1 FROM rating r WHERE r.id_transaksi = t.id_transaksi)
     ORDER BY t.tanggal_kembali DESC
@@ -272,7 +277,7 @@ $tanggalIndonesia=date('d').' '.$namaBulan[(int)date('n')].' '.date('Y');
     </div>
 
     <div class="rating-book">
-        <strong><?= htmlspecialchars($bukuUntukRating['judul']) ?></strong>
+        <strong><?= htmlspecialchars($bukuUntukRating['judul'] ?? 'Buku tidak ditemukan') ?><?php if (!empty($bukuUntukRating['deleted_at'])): ?> <span class="badge badge-habis">Diarsipkan</span><?php endif; ?></strong>
         <span>oleh <?= htmlspecialchars($bukuUntukRating['pengarang']) ?></span>
     </div>
 
@@ -356,7 +361,7 @@ paint(0,false);
             <?php foreach($daftarBelumRating as $r): ?>
                 <tr>
                     <td data-label="Judul">
-                        <div class="book-title"><?= htmlspecialchars($r['judul']) ?></div>
+                        <div class="book-title"><?= htmlspecialchars($r['judul'] ?? 'Buku tidak ditemukan') ?><?php if (!empty($r['deleted_at'])): ?> <span class="badge badge-habis">Diarsipkan</span><?php endif; ?></div>
                         <div class="book-author"><?= htmlspecialchars($r['pengarang']) ?></div>
                     </td>
                     <td data-label="Aksi">
@@ -391,15 +396,17 @@ paint(0,false);
             </thead>
             <tbody>
             <?php foreach($daftarPinjaman as $p):
-                $hariIni=strtotime(date('Y-m-d'));
+                $tanggalAcuanBaris = ($p['status']==='menunggu_konfirmasi')
+                    ? strtotime($p['tanggal_pengajuan_kembali'] ?? date('Y-m-d'))
+                    : strtotime(date('Y-m-d'));
                 $jatuhTempo=strtotime($p['tanggal_jatuh_tempo']);
-                $telat=$hariIni>$jatuhTempo;
-                $hariTerlambat=$telat?floor(($hariIni-$jatuhTempo)/86400):0;
-                $denda=$hariTerlambat*TARIF_DENDA_PER_HARI;
+                $telat=$tanggalAcuanBaris>$jatuhTempo;
+                $hariTerlambat=$telat?floor(($tanggalAcuanBaris-$jatuhTempo)/86400):0;
+                $denda=$telat?min($hariTerlambat*TARIF_DENDA_PER_HARI, TARIF_DENDA_MAKSIMUM):0;
             ?>
                 <tr>
                     <td data-label="Judul">
-                        <div class="book-title"><?= htmlspecialchars($p['judul']) ?></div>
+                        <div class="book-title"><?= htmlspecialchars($p['judul'] ?? 'Buku tidak ditemukan') ?><?php if (!empty($p['deleted_at'])): ?> <span class="badge badge-habis">Diarsipkan</span><?php endif; ?></div>
                         <div class="book-author"><?= htmlspecialchars($p['pengarang']) ?></div>
                     </td>
 

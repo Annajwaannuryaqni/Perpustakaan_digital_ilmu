@@ -62,7 +62,7 @@ $daftarBuku = $koneksi->query("
     SELECT b.*, k.nama_kategori
     FROM buku b
     LEFT JOIN kategori k ON k.id_kategori = b.id_kategori
-    WHERE b.stok > 0
+    WHERE b.deleted_at IS NULL AND b.stok > 0
     ORDER BY k.nama_kategori ASC, b.judul ASC
 ")->fetchAll();
 

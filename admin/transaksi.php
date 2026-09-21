@@ -6,10 +6,10 @@ require_once '../config/database.php';
 date_default_timezone_set('Asia/Jakarta');
 
 $daftarTransaksi = $koneksi->query("
-    SELECT t.*, a.nama_lengkap, a.kelas, b.judul
+    SELECT t.*, a.nama_lengkap, a.kelas, b.judul, b.deleted_at
     FROM transaksi t
     JOIN anggota a ON a.id_anggota = t.id_anggota
-    JOIN buku b ON b.id_buku = t.id_buku
+    LEFT JOIN buku b ON b.id_buku = t.id_buku
     ORDER BY t.id_transaksi DESC
 ")->fetchAll();
 
@@ -17,6 +17,7 @@ $totalTransaksi = count($daftarTransaksi);
 $totalDipinjam = 0;
 $totalDikembalikan = 0;
 $totalDendaBelumLunas = 0;
+$totalDendaTerkumpul = 0;
 foreach ($daftarTransaksi as $t) {
     if ($t['status'] === 'dipinjam' || $t['status'] === 'menunggu_konfirmasi') {
         $totalDipinjam++;
@@ -25,6 +26,8 @@ foreach ($daftarTransaksi as $t) {
     }
     if ((float)$t['denda'] > 0 && $t['status_denda'] === 'Belum Lunas') {
         $totalDendaBelumLunas += (float)$t['denda'];
+    } elseif ((float)$t['denda'] > 0 && $t['status_denda'] === 'Lunas') {
+        $totalDendaTerkumpul += (float)$t['denda'];
     }
 }
 
@@ -52,7 +55,7 @@ if (($_GET['pesan'] ?? '') === 'gagal_hapus') {
 .transaksi-hero p{margin:0;color:#64748b;font-size:14px;line-height:1.6}
 .print-btn{flex-shrink:0;padding:12px 20px;border:0;border-radius:11px;background:#0284c7;color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:.2s}
 .print-btn:hover{background:#0369a1;transform:translateY(-1px);box-shadow:0 8px 18px rgba(2,132,199,.22)}
-.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-top:22px}
+.summary-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:13px;margin-top:22px}
 .summary-card{min-width:0;padding:16px;border:1px solid #e2e8f0;border-radius:14px;background:#fff;display:flex;align-items:center;gap:12px;box-shadow:0 4px 14px rgba(15,23,42,.035)}
 .summary-icon{width:42px;height:42px;flex:0 0 42px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:#eff6ff;color:#0284c7}
 .summary-icon svg{width:21px;height:21px}
@@ -286,7 +289,7 @@ if (($_GET['pesan'] ?? '') === 'gagal_hapus') {
           <tr>
             <td data-label="Nama Siswa" style="font-weight:600;color:#0f172a;"><?= htmlspecialchars($t['nama_lengkap']) ?></td>
             <td data-label="Kelas"><?= htmlspecialchars($t['kelas']) ?></td>
-            <td data-label="Judul Buku"><?= htmlspecialchars($t['judul']) ?></td>
+            <td data-label="Judul Buku"><?= htmlspecialchars($t['judul'] ?? 'Buku tidak ditemukan') ?><?php if (!empty($t['deleted_at'])): ?> <span class="badge badge-habis">Diarsipkan</span><?php endif; ?></td>
             <td data-label="Tgl Pinjam"><?= $t['tanggal_pinjam'] ?></td>
             <td data-label="Jatuh Tempo"><?= $t['tanggal_jatuh_tempo'] ?></td>
             <td data-label="Tgl Kembali"><?= $t['tanggal_kembali'] ?? '-' ?></td>

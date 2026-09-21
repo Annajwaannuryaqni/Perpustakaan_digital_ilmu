@@ -3,7 +3,7 @@
  * Membuat notifikasi baru untuk seorang user (admin atau anggota).
  * Panggil ini dari mana saja yang sudah require config/database.php (punya $koneksi).
  *
- * $user_type wajib diisi 'admin' atau 'anggota' supaya notifikasi nggak ketuker
+ * $user_type wajib diisi 'admin', 'anggota', atau 'petugas' supaya notifikasi nggak ketuker
  * antara admin dan siswa yang kebetulan punya ID sama.
  *
  * Contoh pemakaian (dari sisi siswa, misal setelah pinjam.php berhasil):

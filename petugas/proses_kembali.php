@@ -59,10 +59,12 @@ try {
     // bukan tanggal hari ini petugas mengonfirmasi — supaya tanggal
     // pengembalian resmi yang tercatat konsisten dengan dasar hitung denda.
     $stmt = $koneksi->prepare("
-        UPDATE transaksi SET tanggal_kembali = ?, status = ?, denda = ?, id_petugas = COALESCE(id_petugas, ?)
+        UPDATE transaksi SET tanggal_kembali = ?, status = ?, denda = ?,
+            status_denda = IF(? > 0, 'Belum Lunas', status_denda),
+            id_petugas = COALESCE(id_petugas, ?)
         WHERE id_transaksi = ?
     ");
-    $stmt->execute([$tanggal_kembali_resmi, $status_baru, $denda, $id_petugas, $id_transaksi]);
+    $stmt->execute([$tanggal_kembali_resmi, $status_baru, $denda, $denda, $id_petugas, $id_transaksi]);
 
     $stmt2 = $koneksi->prepare("UPDATE buku SET stok = stok + 1 WHERE id_buku = ?");
     $stmt2->execute([$transaksi['id_buku']]);
@@ -77,7 +79,12 @@ try {
         'color'   => '#22c55e',
     ];
 
-    header('Location: pengembalian.php?pesan=sukses');
+    // Alur: ada denda -> ke halaman denda untuk dibayar; tidak ada -> kembali ke daftar pengembalian
+    if ($denda > 0) {
+        header('Location: denda.php?pesan=kembali_denda');
+    } else {
+        header('Location: pengembalian.php?pesan=sukses');
+    }
     exit;
 
 } catch (PDOException $e) {

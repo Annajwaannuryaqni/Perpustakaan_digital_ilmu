@@ -26,7 +26,7 @@ if ($id_anggota && $id_buku) {
     $stmt = $koneksi->prepare("
         SELECT b.*, k.nama_kategori
         FROM buku b LEFT JOIN kategori k ON k.id_kategori = b.id_kategori
-        WHERE b.id_buku = ?
+        WHERE b.id_buku = ? AND b.deleted_at IS NULL
     ");
     $stmt->execute([$id_buku]);
     $bukuTerpilih = $stmt->fetch();
@@ -59,7 +59,7 @@ if ($id_anggota && !$id_buku) {
         $stmt = $koneksi->prepare("
             SELECT b.*, k.nama_kategori
             FROM buku b LEFT JOIN kategori k ON k.id_kategori = b.id_kategori
-            WHERE b.stok > 0 AND (b.judul LIKE :kw OR b.pengarang LIKE :kw OR b.kode_buku LIKE :kw)
+            WHERE b.deleted_at IS NULL AND b.stok > 0 AND (b.judul LIKE :kw OR b.pengarang LIKE :kw OR b.kode_buku LIKE :kw)
             ORDER BY b.judul ASC LIMIT 30
         ");
         $stmt->execute(['kw' => '%' . $q . '%']);
@@ -68,7 +68,7 @@ if ($id_anggota && !$id_buku) {
         $daftarBuku = $koneksi->query("
             SELECT b.*, k.nama_kategori FROM buku b
             LEFT JOIN kategori k ON k.id_kategori = b.id_kategori
-            WHERE b.stok > 0 ORDER BY b.judul ASC LIMIT 30
+            WHERE b.deleted_at IS NULL AND b.stok > 0 ORDER BY b.judul ASC LIMIT 30
         ")->fetchAll();
     }
 }
@@ -119,6 +119,8 @@ $activeMenu = 'peminjaman';
       <p class="alert alert-gagal">Peminjaman gagal, stok buku sudah habis. Silakan pilih buku lain.</p>
     <?php elseif ($pesan === 'ada_denda'): ?>
       <p class="alert alert-gagal">Anggota ini masih punya denda yang belum lunas. Selesaikan pembayaran dendanya dulu (menu Denda) sebelum meminjamkan buku baru.</p>
+    <?php elseif ($pesan === 'ada_terlambat'): ?>
+      <p class="alert alert-gagal">Anggota ini masih memegang buku yang sudah lewat jatuh tempo. Minta anggota mengembalikannya dulu (lihat menu Buku Terlambat) sebelum meminjamkan buku baru.</p>
     <?php elseif ($pesan === 'gagal_duplikat'): ?>
       <p class="alert alert-gagal">Anggota ini sudah sedang meminjam buku yang sama dan belum mengembalikannya.</p>
     <?php elseif ($pesan === 'gagal'): ?>

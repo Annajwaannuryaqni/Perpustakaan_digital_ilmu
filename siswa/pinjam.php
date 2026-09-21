@@ -7,11 +7,11 @@ $pesan = $_GET['pesan'] ?? '';
 $keyword = trim($_GET['q'] ?? '');
 
 if ($keyword !== '') {
-    $stmt = $koneksi->prepare("SELECT b.*,k.nama_kategori FROM buku b LEFT JOIN kategori k ON k.id_kategori=b.id_kategori WHERE b.stok>0 AND (b.judul LIKE :kw OR b.pengarang LIKE :kw OR k.nama_kategori LIKE :kw) ORDER BY k.nama_kategori ASC,b.judul ASC");
+    $stmt = $koneksi->prepare("SELECT b.*,k.nama_kategori FROM buku b LEFT JOIN kategori k ON k.id_kategori=b.id_kategori WHERE b.deleted_at IS NULL AND b.stok>0 AND (b.judul LIKE :kw OR b.pengarang LIKE :kw OR k.nama_kategori LIKE :kw) ORDER BY k.nama_kategori ASC,b.judul ASC");
     $stmt->execute(['kw'=>'%'.$keyword.'%']);
     $daftarBuku = $stmt->fetchAll();
 } else {
-    $daftarBuku = $koneksi->query("SELECT b.*,k.nama_kategori FROM buku b LEFT JOIN kategori k ON k.id_kategori=b.id_kategori WHERE b.stok>0 ORDER BY k.nama_kategori ASC,b.judul ASC")->fetchAll();
+    $daftarBuku = $koneksi->query("SELECT b.*,k.nama_kategori FROM buku b LEFT JOIN kategori k ON k.id_kategori=b.id_kategori WHERE b.deleted_at IS NULL AND b.stok>0 ORDER BY k.nama_kategori ASC,b.judul ASC")->fetchAll();
 }
 
 $bukuPerGenre = [];
@@ -153,6 +153,8 @@ $totalGenre = count($bukuPerGenre);
 <p class="alert alert-gagal">Kamu masih memiliki pinjaman aktif untuk buku ini. Kembalikan dulu sebelum meminjam lagi.</p>
 <?php elseif($pesan==='ada_denda'): ?>
 <p class="alert alert-gagal">Kamu masih punya denda yang belum lunas. Selesaikan pembayaran denda ke petugas sebelum meminjam buku baru.</p>
+<?php elseif($pesan==='ada_terlambat'): ?>
+<p class="alert alert-gagal">Kamu masih punya buku yang sudah lewat jatuh tempo. Kembalikan buku tersebut terlebih dahulu sebelum meminjam buku baru.</p>
 <?php elseif($pesan==='tutup'): ?>
 <p class="alert alert-gagal">Perpustakaan sedang tutup. Peminjaman hanya bisa dilakukan Senin-Kamis 07:30-15:30 dan Jumat 07:30-15:00.</p>
 <?php endif; ?>

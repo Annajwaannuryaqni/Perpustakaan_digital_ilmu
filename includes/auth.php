@@ -10,6 +10,13 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Dibutuhkan di sini (bukan cuma di file pemanggil) supaya requireSiswa()/
+// requirePetugas() di bawah bisa mengecek status akun ke database, terlepas
+// dari urutan require_once di file yang memanggilnya. require_once aman
+// dipanggil dua kali (di sini dan lagi di file pemanggil) karena PHP hanya
+// menyertakan file yang sama satu kali.
+require_once __DIR__ . '/../config/database.php';
+
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -38,6 +45,20 @@ function requireSiswa() {
         header('Location: login.php');
         exit;
     }
+    // Status hanya dicek saat login sebelumnya — akun yang baru saja
+    // dinonaktifkan admin masih tetap dianggap sah selama sesinya hidup.
+    // Satu query kecil ini memastikan status akun selalu dicek ulang di
+    // setiap halaman siswa, bukan cuma sekali di awal sesi.
+    global $koneksi;
+    $stmt = $koneksi->prepare("SELECT status FROM anggota WHERE id_anggota = ?");
+    $stmt->execute([$_SESSION['anggota_id']]);
+    $status = $stmt->fetchColumn();
+    if ($status !== 'aktif') {
+        session_unset();
+        session_destroy();
+        header('Location: login.php?pesan=nonaktif');
+        exit;
+    }
 }
 
 // === PETUGAS HELPERS ===
@@ -48,6 +69,16 @@ function isPetugas() {
 function requirePetugas() {
     if (!isPetugas()) {
         header('Location: login.php');
+        exit;
+    }
+    global $koneksi;
+    $stmt = $koneksi->prepare("SELECT status FROM petugas WHERE id_petugas = ?");
+    $stmt->execute([$_SESSION['petugas_id']]);
+    $status = $stmt->fetchColumn();
+    if ($status !== 'aktif') {
+        session_unset();
+        session_destroy();
+        header('Location: login.php?pesan=nonaktif');
         exit;
     }
 }
@@ -86,4 +117,25 @@ function recordFailedLogin($role) {
 
 function clearLoginAttempts($role) {
     unset($_SESSION['login_attempts_' . $role], $_SESSION['login_block_time_' . $role]);
+}
+
+// === PEMBLOKIRAN PINJAM KARENA ADA BUKU TERLAMBAT ===
+// Mengembalikan jumlah pinjaman aktif anggota yang sudah lewat jatuh tempo.
+// Denda baru tercatat saat petugas mengonfirmasi pengembalian, jadi kalau
+// hanya mengandalkan cek denda 'Belum Lunas', siswa yang menahan buku
+// berminggu-minggu tetap lolos meminjam lagi. Definisi "terlambat" di sini
+// SAMA dengan petugas/buku_terlambat.php:
+//  - 'dipinjam'            -> dibandingkan dengan hari ini
+//  - 'menunggu_konfirmasi' -> dibandingkan dengan tanggal siswa mengajukan kembali
+function hitungPinjamanTerlambat(PDO $koneksi, $id_anggota) {
+    $stmt = $koneksi->prepare("
+        SELECT COUNT(*) FROM transaksi
+        WHERE id_anggota = ?
+          AND status IN ('dipinjam','menunggu_konfirmasi')
+          AND (CASE WHEN status = 'menunggu_konfirmasi'
+                    THEN COALESCE(tanggal_pengajuan_kembali, CURDATE())
+                    ELSE CURDATE() END) > tanggal_jatuh_tempo
+    ");
+    $stmt->execute([$id_anggota]);
+    return (int)$stmt->fetchColumn();
 }

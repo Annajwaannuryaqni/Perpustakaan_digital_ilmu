@@ -36,6 +36,14 @@ if ((float)$cekDenda->fetch()['total'] > 0) {
     exit;
 }
 
+// Anggota yang masih memegang buku lewat jatuh tempo juga tidak boleh
+// dipinjamkan buku baru — aturan yang sama dengan alur peminjaman mandiri
+// siswa (siswa/pinjam_konfirmasi.php), lewat fungsi bersama di auth.php.
+if (hitungPinjamanTerlambat($koneksi, $id_anggota) > 0) {
+    header('Location: peminjaman.php?anggota=' . $id_anggota . '&pesan=ada_terlambat');
+    exit;
+}
+
 try {
     $koneksi->beginTransaction();
 

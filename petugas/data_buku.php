@@ -4,13 +4,20 @@ requirePetugas();
 require_once '../config/database.php';
 
 $keyword = trim($_GET['q'] ?? '');
+$mode = ($_GET['mode'] ?? 'aktif') === 'arsip' ? 'arsip' : 'aktif';
+
+if ($mode === 'arsip') {
+    $baseWhere = 'b.deleted_at IS NOT NULL';
+} else {
+    $baseWhere = 'b.deleted_at IS NULL';
+}
 
 if ($keyword !== '') {
     $stmt = $koneksi->prepare("
         SELECT b.*, k.nama_kategori
         FROM buku b
         LEFT JOIN kategori k ON k.id_kategori = b.id_kategori
-        WHERE b.kode_buku LIKE :kw OR b.judul LIKE :kw OR b.pengarang LIKE :kw OR k.nama_kategori LIKE :kw
+        WHERE {$baseWhere} AND (b.kode_buku LIKE :kw OR b.judul LIKE :kw OR b.pengarang LIKE :kw OR k.nama_kategori LIKE :kw)
         ORDER BY b.judul ASC
     ");
     $stmt->execute(['kw' => '%' . $keyword . '%']);
@@ -20,12 +27,17 @@ if ($keyword !== '') {
         SELECT b.*, k.nama_kategori
         FROM buku b
         LEFT JOIN kategori k ON k.id_kategori = b.id_kategori
+        WHERE {$baseWhere}
         ORDER BY b.judul ASC
     ")->fetchAll();
 }
 
 $pesan = $_GET['pesan'] ?? '';
 $pesanGagalHapus = '';
+$pesanBerhasilHapus = '';
+if ($pesan === 'berhasil_hapus') {
+    $pesanBerhasilHapus = 'Buku diarsipkan. Riwayat peminjaman tetap tersimpan.';
+}
 if ($pesan === 'gagal_terpakai') {
     $pesanGagalHapus = 'Buku ini tidak bisa dihapus karena masih memiliki riwayat transaksi peminjaman yang tercatat.';
 } elseif ($pesan === 'gagal_lain') {
@@ -63,8 +75,16 @@ $activeMenu = 'data_buku';
         <h1>Data Buku</h1>
         <p>Total <?= count($daftarBuku) ?> judul buku ditampilkan<?= $keyword !== '' ? ' untuk pencarian "' . htmlspecialchars($keyword) . '"' : '' ?>.</p>
       </div>
-      <a href="tambah_buku.php" class="btn">+ Tambah Buku</a>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+        <a href="data_buku.php?mode=aktif" class="btn">Buku Aktif</a>
+        <a href="data_buku.php?mode=arsip" class="btn">Buku Diarsipkan</a>
+        <?php if ($mode === 'aktif'): ?><a href="tambah_buku.php" class="btn">+ Tambah Buku</a><?php endif; ?>
+      </div>
     </div>
+
+    <?php if ($pesanBerhasilHapus): ?>
+      <p class="alert alert-sukses"><?= htmlspecialchars($pesanBerhasilHapus) ?></p>
+    <?php endif; ?>
 
     <?php if ($pesanGagalHapus): ?>
       <p class="alert alert-gagal"><?= htmlspecialchars($pesanGagalHapus) ?></p>
@@ -128,13 +148,20 @@ $activeMenu = 'data_buku';
             </td>
             <td data-label="Aksi">
               <div class="aksi-cell">
-                <a href="edit_buku.php?id=<?= $b['id_buku'] ?>" class="btn btn-outline">Edit</a>
-                <form method="POST" action="hapus_buku.php" onsubmit="return confirm('Hapus buku \'<?= htmlspecialchars(addslashes($b['judul'])) ?>\'? Tindakan ini tidak bisa dibatalkan.')" style="margin:0;">
-                  <?= csrfField() ?>
-                  <input type="hidden" name="id" value="<?= $b['id_buku'] ?>">
-                  <button type="submit" class="btn btn-danger">Hapus</button>
-                </form>
-              </div>
+                <?php if ($mode === 'arsip'): ?>
+                  <form method="POST" action="pulihkan_buku.php" onsubmit="return confirm('Pulihkan buku ini? Buku akan kembali menjadi buku aktif.');" style="margin:0;">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="id" value="<?= $b['id_buku'] ?>">
+                    <button type="submit" class="btn">Pulihkan Buku</button>
+                  </form>
+                <?php else: ?>
+                  <a href="edit_buku.php?id=<?= $b['id_buku'] ?>" class="btn btn-outline">Edit</a>
+                  <form method="POST" action="hapus_buku.php" onsubmit="return confirm('Arsipkan buku ini? Buku akan disembunyikan dari katalog tetapi riwayat transaksi tetap tersimpan.');" style="margin:0;">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="id" value="<?= $b['id_buku'] ?>">
+                    <button type="submit" class="btn btn-danger">Arsipkan</button>
+                  </form>
+                <?php endif; ?>              </div>
             </td>
           </tr>
           <?php endforeach; ?>

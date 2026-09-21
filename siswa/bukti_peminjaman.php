@@ -15,9 +15,9 @@ if (!$id_transaksi) {
 // (id_anggota diambil dari sesi, bukan dari input) — mencegah siswa lain
 // mengintip bukti peminjaman orang lain hanya dengan mengganti angka di URL.
 $stmt = $koneksi->prepare("
-    SELECT t.*, b.judul, b.pengarang, k.nama_kategori, a.nama_lengkap, a.nis, a.kelas
+    SELECT t.*, b.judul, b.deleted_at, b.pengarang, k.nama_kategori, a.nama_lengkap, a.nis, a.kelas
     FROM transaksi t
-    JOIN buku b ON b.id_buku = t.id_buku
+    LEFT JOIN buku b ON b.id_buku = t.id_buku
     LEFT JOIN kategori k ON k.id_kategori = b.id_kategori
     JOIN anggota a ON a.id_anggota = t.id_anggota
     WHERE t.id_transaksi = ? AND t.id_anggota = ?
@@ -160,7 +160,7 @@ $status = $statusLabel[$data['status']] ?? ucfirst($data['status']);
 
       <div class="receipt-section">
         <h4>Data Buku</h4>
-        <div class="receipt-row"><span>Judul</span><span><?= htmlspecialchars($data['judul']) ?></span></div>
+        <div class="receipt-row"><span>Judul</span><span><?= htmlspecialchars($data['judul'] ?? 'Buku tidak ditemukan') ?><?php if (!empty($data['deleted_at'])): ?> <span class="badge badge-habis">Diarsipkan</span><?php endif; ?></span></div>
         <div class="receipt-row"><span>Penulis</span><span><?= htmlspecialchars($data['pengarang']) ?></span></div>
         <div class="receipt-row"><span>Kategori</span><span><?= htmlspecialchars($data['nama_kategori'] ?? '-') ?></span></div>
       </div>

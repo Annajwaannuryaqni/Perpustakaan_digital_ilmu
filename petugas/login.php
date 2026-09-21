@@ -9,6 +9,9 @@ if (isset($_SESSION['petugas_id'])) {
 }
 
 $error = '';
+if (($_GET['pesan'] ?? '') === 'nonaktif') {
+    $error = 'Akun Petugas kamu telah dinonaktifkan. Hubungi Administrator.';
+}
 $sisaBlokir = isLoginBlocked('petugas');
 
 if ($sisaBlokir !== false) {

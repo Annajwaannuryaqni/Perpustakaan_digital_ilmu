@@ -35,7 +35,7 @@ $stmt = $koneksi->prepare("
     SELECT b.*, k.nama_kategori
     FROM buku b
     LEFT JOIN kategori k ON k.id_kategori = b.id_kategori
-    WHERE b.id_buku = ?
+    WHERE b.id_buku = ? AND b.deleted_at IS NULL
 ");
 $stmt->execute([$id_buku]);
 $buku = $stmt->fetch();
@@ -45,6 +45,11 @@ if (!$buku) {
     header('Location: pinjam.php?pesan=gagal');
     exit;
 }
+
+// Jumlah buku yang sudah lewat jatuh tempo tapi belum dikembalikan.
+// Dipakai untuk memblokir peminjaman baru (di POST) sekaligus menampilkan
+// peringatan & menyembunyikan tombol konfirmasi (di tampilan).
+$jumlahTerlambat = hitungPinjamanTerlambat($koneksi, $_SESSION['anggota_id']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
@@ -71,6 +76,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $cekDenda->execute([$id_anggota]);
     if ((float)$cekDenda->fetch()['total'] > 0) {
         header('Location: pinjam.php?pesan=ada_denda');
+        exit;
+    }
+
+    // Siswa yang masih memegang buku lewat jatuh tempo juga tidak boleh
+    // meminjam lagi, walau dendanya belum tercatat (baru tercatat saat
+    // petugas mengonfirmasi pengembalian).
+    if ($jumlahTerlambat > 0) {
+        header('Location: pinjam.php?pesan=ada_terlambat');
         exit;
     }
 
@@ -314,6 +327,11 @@ $stokTersedia = (int)$buku['stok'] > 0;
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5"/><path d="M12 16.2h.01"/></svg>
         <span>Maaf, stok buku ini sudah habis dan tidak bisa dipinjam saat ini.</span>
       </div>
+    <?php elseif ($jumlahTerlambat > 0): ?>
+      <div class="confirm-alert-gagal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5"/><path d="M12 16.2h.01"/></svg>
+        <span>Kamu masih punya <?= $jumlahTerlambat ?> buku yang sudah lewat jatuh tempo. Kembalikan dulu buku tersebut sebelum meminjam buku baru.</span>
+      </div>
     <?php elseif (!$perpustakaanBuka): ?>
       <div class="confirm-alert-gagal">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5"/><path d="M12 16.2h.01"/></svg>
@@ -390,7 +408,7 @@ $stokTersedia = (int)$buku['stok'] > 0;
 
       <div class="confirm-actions">
         <a href="pinjam.php" class="btn-outline btn">Batal</a>
-        <?php if ($stokTersedia && $perpustakaanBuka): ?>
+        <?php if ($stokTersedia && $perpustakaanBuka && $jumlahTerlambat === 0): ?>
           <form method="POST" action="pinjam_konfirmasi.php?id=<?= $id_buku ?>" style="flex:1;">
             <?= csrfField() ?>
             <input type="hidden" name="id_buku" value="<?= $id_buku ?>">

@@ -97,6 +97,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Notifikasi gagal terkirim, tapi pendaftaran tetap sah — abaikan saja.
                 }
 
+                // Pendaftaran berhasil. Langsung arahkan ke login tanpa
+                // menampilkan halaman sukses/menunggu 3 detik.
+                header('Location: login.php');
+                exit;
+
             } catch (PDOException $e) {
                 // Lapisan pertahanan kedua: kalau dua orang daftar dengan NIS/username
                 // sama persis di saat bersamaan, cek SELECT di atas bisa lolos untuk
@@ -672,24 +677,5 @@ textarea.form-input{
   }
 </script>
 
-<?php if($success): ?>
-<script>
-document.addEventListener("DOMContentLoaded",function(){
-    if(typeof showToast==="function"){
-        showToast(
-            "Registrasi Berhasil",
-            "Selamat! Akun berhasil dibuat. Anda akan diarahkan ke halaman login.",
-            "success",
-            "fa-circle-check",
-            "#22c55e"
-        );
-
-    }
-    setTimeout(function(){
-        window.location.href="login.php"
-    },3000);
-});
-</script>
-<?php endif; ?>
 </body>
 </html>

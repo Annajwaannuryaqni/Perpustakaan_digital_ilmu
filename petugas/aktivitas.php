@@ -7,7 +7,7 @@ $daftarTransaksi = $koneksi->query("
     SELECT t.*, a.nama_lengkap AS nama_anggota, a.kelas, b.judul, p.nama_lengkap AS nama_petugas
     FROM transaksi t
     JOIN anggota a ON a.id_anggota = t.id_anggota
-    JOIN buku b ON b.id_buku = t.id_buku
+    LEFT JOIN buku b ON b.id_buku = t.id_buku
     LEFT JOIN petugas p ON p.id_petugas = t.id_petugas
     ORDER BY t.id_transaksi DESC
 ")->fetchAll();
@@ -52,7 +52,7 @@ $activeMenu = 'aktivitas';
           <tr>
             <td data-label="Anggota" style="font-weight:600;"><?= htmlspecialchars($t['nama_anggota']) ?></td>
             <td data-label="Kelas"><?= htmlspecialchars($t['kelas']) ?></td>
-            <td data-label="Judul Buku"><?= htmlspecialchars($t['judul']) ?></td>
+            <td data-label="Judul Buku"><?= htmlspecialchars($t['judul'] ?? 'Buku tidak ditemukan') ?><?php if (!empty($t['deleted_at'])): ?> <span class="badge badge-habis">Diarsipkan</span><?php endif; ?></td>
             <td data-label="Tgl Pinjam"><?= $t['tanggal_pinjam'] ?></td>
             <td data-label="Jatuh Tempo"><?= $t['tanggal_jatuh_tempo'] ?></td>
             <td data-label="Tgl Kembali"><?= $t['tanggal_kembali'] ?? '-' ?></td>

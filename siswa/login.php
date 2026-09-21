@@ -3,6 +3,9 @@ require_once '../includes/auth.php';
 require_once '../config/database.php';
 
 $error = '';
+if (($_GET['pesan'] ?? '') === 'nonaktif') {
+    $error = 'Akun kamu telah dinonaktifkan. Hubungi admin perpustakaan.';
+}
 $sisaBlokir = isLoginBlocked('siswa');
 
 if ($sisaBlokir !== false) {

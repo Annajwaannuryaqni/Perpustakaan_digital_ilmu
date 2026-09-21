@@ -9,10 +9,10 @@ $q = trim($_GET['q'] ?? '');
 
 if ($q !== '') {
     $stmt = $koneksi->prepare("
-        SELECT t.*, a.nama_lengkap AS nama_anggota, a.nis, a.kelas, b.judul
+        SELECT t.*, a.nama_lengkap AS nama_anggota, a.nis, a.kelas, b.judul, b.deleted_at
         FROM transaksi t
         JOIN anggota a ON a.id_anggota = t.id_anggota
-        JOIN buku b ON b.id_buku = t.id_buku
+        LEFT JOIN buku b ON b.id_buku = t.id_buku
         WHERE t.status = 'menunggu_konfirmasi'
           AND (a.nama_lengkap LIKE :kw OR a.nis LIKE :kw OR b.judul LIKE :kw)
         ORDER BY t.tanggal_jatuh_tempo ASC
@@ -22,10 +22,10 @@ if ($q !== '') {
     $daftarPinjaman = $stmt->fetchAll();
 } else {
     $daftarPinjaman = $koneksi->query("
-        SELECT t.*, a.nama_lengkap AS nama_anggota, a.nis, a.kelas, b.judul
+        SELECT t.*, a.nama_lengkap AS nama_anggota, a.nis, a.kelas, b.judul, b.deleted_at
         FROM transaksi t
         JOIN anggota a ON a.id_anggota = t.id_anggota
-        JOIN buku b ON b.id_buku = t.id_buku
+        LEFT JOIN buku b ON b.id_buku = t.id_buku
         WHERE t.status = 'menunggu_konfirmasi'
         ORDER BY t.tanggal_jatuh_tempo ASC
         LIMIT 40
@@ -89,7 +89,7 @@ $activeMenu = 'pengembalian';
           <tr>
             <td data-label="Anggota" style="font-weight:600;"><?= htmlspecialchars($p['nama_anggota']) ?> <br><small style="color:var(--muted); font-weight:400;">NIS <?= htmlspecialchars($p['nis']) ?></small></td>
             <td data-label="Kelas"><?= htmlspecialchars($p['kelas']) ?></td>
-            <td data-label="Judul Buku"><?= htmlspecialchars($p['judul']) ?></td>
+            <td data-label="Judul Buku"><?= htmlspecialchars($p['judul'] ?? 'Buku tidak ditemukan') ?><?php if (!empty($p['deleted_at'])): ?> <span class="badge badge-habis">Diarsipkan</span><?php endif; ?></td>
             <td data-label="Jatuh Tempo"><?= $p['tanggal_jatuh_tempo'] ?></td>
             <td data-label="Status">
               <span class="badge badge-habis">Diajukan Siswa</span>

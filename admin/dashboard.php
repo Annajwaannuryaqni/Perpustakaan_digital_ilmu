@@ -15,7 +15,9 @@ $terlambat       = $koneksi->query("SELECT COUNT(*) AS total FROM transaksi WHER
 // sehingga angka ini tidak pernah cocok dengan kondisi nyata. Sekarang
 // hanya menjumlahkan denda yang BELUM lunas — konsisten dengan kartu
 // "Denda Belum Lunas" di halaman Transaksi.
-$totalDenda      = $koneksi->query("SELECT COALESCE(SUM(denda),0) AS total FROM transaksi WHERE status_denda = 'Belum Lunas'")->fetch()['total'];
+$totalDendaBelumLunas = $koneksi->query("SELECT COALESCE(SUM(denda),0) AS total FROM transaksi WHERE status_denda = 'Belum Lunas'")->fetch()['total'];
+$totalDendaTerkumpul = $koneksi->query("SELECT COALESCE(SUM(denda),0) AS total FROM transaksi WHERE status_denda = 'Lunas'")->fetch()['total'];
+$totalDenda = $totalDendaBelumLunas;
 
 // ---- Rekap jumlah judul & total stok per genre/kategori ----
 $stokPerGenre = $koneksi->query("
@@ -30,9 +32,9 @@ $stokPerGenre = $koneksi->query("
 
 // ---- Aktivitas terbaru: transaksi peminjaman terakhir ----
 $aktivitasTerbaru = $koneksi->query("
-    SELECT t.*, b.judul, a.nama_lengkap
+    SELECT t.*, b.judul, b.deleted_at, a.nama_lengkap
     FROM transaksi t
-    JOIN buku b ON b.id_buku = t.id_buku
+    LEFT JOIN buku b ON b.id_buku = t.id_buku
     JOIN anggota a ON a.id_anggota = t.id_anggota
     ORDER BY t.id_transaksi DESC
     LIMIT 6
@@ -317,7 +319,7 @@ function dashIcon($name, $class = 'ic') {
               $telat = $t['status'] === 'dipinjam' && $t['tanggal_jatuh_tempo'] < date('Y-m-d');
             ?>
             <tr>
-              <td><?= htmlspecialchars($t['judul']) ?></td>
+              <td><?= htmlspecialchars($t['judul'] ?? 'Buku tidak ditemukan') ?><?php if (!empty($t['deleted_at'])): ?> <span class="badge badge-habis">Diarsipkan</span><?php endif; ?></td>
               <td><?= htmlspecialchars($t['nama_lengkap']) ?></td>
               <td><?= htmlspecialchars($t['tanggal_pinjam']) ?></td>
               <td><?= htmlspecialchars($t['tanggal_jatuh_tempo']) ?></td>

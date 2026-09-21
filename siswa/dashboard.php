@@ -8,9 +8,9 @@ $id_anggota = $_SESSION['anggota_id'];
 
 // Buku yang sedang dipinjam siswa ini (detail, bukan cuma jumlah)
 $stmtDipinjam = $koneksi->prepare("
-    SELECT t.*, b.judul, b.pengarang, b.cover
+    SELECT t.*, b.judul, b.deleted_at, b.pengarang, b.cover
     FROM transaksi t
-    JOIN buku b ON b.id_buku = t.id_buku
+    LEFT JOIN buku b ON b.id_buku = t.id_buku
     WHERE t.id_anggota = ? AND t.status IN ('dipinjam','menunggu_konfirmasi')
     ORDER BY t.tanggal_jatuh_tempo ASC
 ");
@@ -22,10 +22,17 @@ $totalTerlambat = 0;
 $estimasiDenda = 0;
 $hariIni = date('Y-m-d');
 foreach ($bukuDipinjam as $p) {
-    if ($p['tanggal_jatuh_tempo'] < $hariIni) {
+    // Buku yang statusnya 'menunggu_konfirmasi' dendanya SUDAH TERKUNCI di
+    // tanggal_pengajuan_kembali (sama seperti yang dihitung petugas saat
+    // konfirmasi) — bukan terus jalan sampai hari ini. Kalau masih 'dipinjam',
+    // baru dihitung dari hari ini karena masih terus berjalan.
+    $tanggalAcuan = ($p['status'] === 'menunggu_konfirmasi')
+        ? ($p['tanggal_pengajuan_kembali'] ?? $hariIni)
+        : $hariIni;
+    if ($tanggalAcuan > $p['tanggal_jatuh_tempo']) {
         $totalTerlambat++;
-        $hariTerlambat = floor((strtotime($hariIni) - strtotime($p['tanggal_jatuh_tempo'])) / 86400);
-        $estimasiDenda += $hariTerlambat * TARIF_DENDA_PER_HARI;
+        $hariTerlambat = floor((strtotime($tanggalAcuan) - strtotime($p['tanggal_jatuh_tempo'])) / 86400);
+        $estimasiDenda += min($hariTerlambat * TARIF_DENDA_PER_HARI, TARIF_DENDA_MAKSIMUM);
     }
 }
 
@@ -44,9 +51,9 @@ $totalDikembalikan = $stmtDikembalikan->fetch()['total'];
 
 // Riwayat peminjaman siswa ini (terbaru dulu)
 $riwayat = $koneksi->prepare("
-    SELECT t.*, b.judul
+    SELECT t.*, b.judul, b.deleted_at
     FROM transaksi t
-    JOIN buku b ON b.id_buku = t.id_buku
+    LEFT JOIN buku b ON b.id_buku = t.id_buku
     WHERE t.id_anggota = ?
     ORDER BY t.id_transaksi DESC
     LIMIT 6
@@ -59,7 +66,7 @@ $rekomendasi = $koneksi->query("
     SELECT b.*, k.nama_kategori
     FROM buku b
     LEFT JOIN kategori k ON k.id_kategori = b.id_kategori
-    WHERE b.stok > 0
+    WHERE b.deleted_at IS NULL AND b.stok > 0
     ORDER BY b.id_buku DESC
     LIMIT 4
 ")->fetchAll();
@@ -200,7 +207,7 @@ function siswaIcon($name, $class = 'ic') {
             <div class="loan-thumb"></div>
           <?php endif; ?>
           <div class="loan-info">
-            <div class="loan-title"><?= htmlspecialchars($p['judul']) ?></div>
+            <div class="loan-title"><?= htmlspecialchars($p['judul'] ?? 'Buku tidak ditemukan') ?><?php if (!empty($p['deleted_at'])): ?> <span class="badge badge-habis">Diarsipkan</span><?php endif; ?></div>
             <div class="loan-meta">Pinjam: <?= htmlspecialchars($p['tanggal_pinjam']) ?> &middot; Jatuh tempo: <?= htmlspecialchars($p['tanggal_jatuh_tempo']) ?></div>
           </div>
           <?php if ($p['status'] === 'menunggu_konfirmasi'): ?>
@@ -234,7 +241,7 @@ function siswaIcon($name, $class = 'ic') {
           <tbody>
             <?php foreach ($riwayat as $r): ?>
             <tr>
-              <td data-label="Judul Buku"><?= htmlspecialchars($r['judul']) ?></td>
+              <td data-label="Judul Buku"><?= htmlspecialchars($r['judul'] ?? 'Buku tidak ditemukan') ?><?php if (!empty($r['deleted_at'])): ?> <span class="badge badge-habis">Diarsipkan</span><?php endif; ?></td>
               <td data-label="Tgl Pinjam"><?= htmlspecialchars($r['tanggal_pinjam']) ?></td>
               <td data-label="Jatuh Tempo"><?= htmlspecialchars($r['tanggal_jatuh_tempo']) ?></td>
               <td data-label="Status">

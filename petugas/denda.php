@@ -6,18 +6,21 @@ require_once '../config/database.php';
 $pesan = $_GET['pesan'] ?? '';
 
 $daftarDenda = $koneksi->query("
-    SELECT t.*, a.nama_lengkap AS nama_anggota, a.nis, a.kelas, b.judul
+    SELECT t.*, a.nama_lengkap AS nama_anggota, a.nis, a.kelas, b.judul, b.deleted_at
     FROM transaksi t
     JOIN anggota a ON a.id_anggota = t.id_anggota
-    JOIN buku b ON b.id_buku = t.id_buku
+    LEFT JOIN buku b ON b.id_buku = t.id_buku
     WHERE t.denda > 0
     ORDER BY t.status_denda ASC, t.tanggal_kembali DESC
 ")->fetchAll();
 
 $totalBelumLunas = 0;
+$totalTerkumpul = 0;
 foreach ($daftarDenda as $d) {
     if ($d['status_denda'] === 'Belum Lunas') {
         $totalBelumLunas += (float)$d['denda'];
+    } elseif ($d['status_denda'] === 'Lunas') {
+        $totalTerkumpul += (float)$d['denda'];
     }
 }
 
@@ -38,9 +41,13 @@ $activeMenu = 'denda';
     <div class="page-head">
       <div>
         <h1>Denda Keterlambatan</h1>
-        <p>Total denda belum lunas saat ini: <strong>Rp<?= number_format($totalBelumLunas, 0, ',', '.') ?></strong></p>
+        <p>Denda belum lunas: <strong>Rp<?= number_format($totalBelumLunas, 0, ',', '.') ?></strong> &nbsp; | &nbsp; <strong>Sudah terkumpul: Rp<?= number_format($totalTerkumpul, 0, ',', '.') ?></strong></p>
       </div>
     </div>
+
+    <?php if ($pesan === 'kembali_denda'): ?>
+      <p class="alert alert-sukses">Buku berhasil dikembalikan, tetapi ada denda keterlambatan. Silakan proses pembayaran denda di bawah ini.</p>
+    <?php endif; ?>
 
     <?php if ($pesan === 'denda_lunas'): ?>
       <p class="alert alert-sukses">Denda berhasil ditandai lunas.</p>
@@ -64,7 +71,7 @@ $activeMenu = 'denda';
           <tr>
             <td data-label="Anggota" style="font-weight:600;"><?= htmlspecialchars($d['nama_anggota']) ?> <br><small style="color:var(--muted); font-weight:400;">NIS <?= htmlspecialchars($d['nis']) ?></small></td>
             <td data-label="Kelas"><?= htmlspecialchars($d['kelas']) ?></td>
-            <td data-label="Judul Buku"><?= htmlspecialchars($d['judul']) ?></td>
+            <td data-label="Judul Buku"><?= htmlspecialchars($d['judul'] ?? 'Buku tidak ditemukan') ?><?php if (!empty($d['deleted_at'])): ?> <span class="badge badge-habis">Diarsipkan</span><?php endif; ?></td>
             <td data-label="Tgl Kembali"><?= htmlspecialchars($d['tanggal_kembali'] ?? '-') ?></td>
             <td data-label="Denda">Rp<?= number_format((float)$d['denda'], 0, ',', '.') ?></td>
             <td data-label="Status Bayar">

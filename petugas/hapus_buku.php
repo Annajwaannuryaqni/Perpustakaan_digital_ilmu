@@ -13,34 +13,13 @@ $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
 
 if ($id) {
     try {
-        // Ambil dulu nama file cover-nya sebelum baris buku dihapus dari DB,
-        // supaya filenya bisa ikut dihapus dari folder uploads/ setelah
-        // penghapusan data berhasil (mencegah file cover jadi yatim/menumpuk).
-        $cekCover = $koneksi->prepare("SELECT cover FROM buku WHERE id_buku = ?");
-        $cekCover->execute([$id]);
-        $coverLama = $cekCover->fetchColumn();
-
-        $stmt = $koneksi->prepare("DELETE FROM buku WHERE id_buku = ?");
+        // Soft delete: buku tetap tersimpan agar riwayat transaksi tidak ikut hilang.
+        $stmt = $koneksi->prepare("UPDATE buku SET deleted_at = NOW() WHERE id_buku = ? AND deleted_at IS NULL");
         $stmt->execute([$id]);
-
-        // Data buku berhasil dihapus dari DB — baru sekarang aman hapus filenya.
-        if ($coverLama) {
-            $pathCoverLama = '../uploads/' . $coverLama;
-            if (is_file($pathCoverLama)) {
-                @unlink($pathCoverLama);
-            }
-        }
     } catch (PDOException $e) {
-        // Kode 23000 = pelanggaran integrity constraint (mis. masih ada baris
-        // transaksi yang mereferensikan buku ini lewat foreign key). Tangkap
-        // di sini supaya admin dapat pesan yang jelas, bukan error PHP mentah.
-        if ((int)$e->getCode() === 23000) {
-            header('Location: data_buku.php?pesan=gagal_terpakai');
-            exit;
-        }
         header('Location: data_buku.php?pesan=gagal_lain');
         exit;
     }
 }
-header('Location: data_buku.php');
+header('Location: data_buku.php?pesan=berhasil_hapus');
 exit;

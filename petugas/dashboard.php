@@ -18,7 +18,7 @@ $bukuDipinjam = $koneksi->query("SELECT COUNT(*) AS total FROM transaksi WHERE s
 // status 'dipinjam' atau 'menunggu_konfirmasi', dengan tanggal acuan =
 // tanggal pengajuan kembali (jika sudah diajukan siswa) atau hari ini.
 $sqlTerlambat = "
-    SELECT t.*, a.nama_lengkap AS nama_anggota, b.judul,
+    SELECT t.*, a.nama_lengkap AS nama_anggota, b.judul, b.deleted_at,
            DATEDIFF(
                CASE WHEN t.status = 'menunggu_konfirmasi'
                     THEN COALESCE(t.tanggal_pengajuan_kembali, CURDATE())
@@ -27,7 +27,7 @@ $sqlTerlambat = "
            ) AS hari_terlambat
     FROM transaksi t
     JOIN anggota a ON a.id_anggota = t.id_anggota
-    JOIN buku b ON b.id_buku = t.id_buku
+    LEFT JOIN buku b ON b.id_buku = t.id_buku
     WHERE t.status IN ('dipinjam','menunggu_konfirmasi')
     HAVING hari_terlambat > 0
     ORDER BY t.tanggal_jatuh_tempo ASC
@@ -203,7 +203,7 @@ function petugasIcon($name) {
             <?php foreach ($daftarTerlambat as $d): ?>
             <tr>
               <td><?= htmlspecialchars($d['nama_anggota']) ?></td>
-              <td><?= htmlspecialchars($d['judul']) ?></td>
+              <td><?= htmlspecialchars($d['judul'] ?? 'Buku tidak ditemukan') ?><?php if (!empty($d['deleted_at'])): ?> <span class="badge badge-habis">Diarsipkan</span><?php endif; ?></td>
               <td><?= htmlspecialchars($d['tanggal_jatuh_tempo']) ?></td>
               <td><?= (int)$d['hari_terlambat'] ?> hari</td>
               <td><span class="status-pill telat">Terlambat</span></td>
