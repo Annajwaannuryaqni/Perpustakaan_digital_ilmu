@@ -5,6 +5,29 @@ require_once '../config/database.php';
 
 requireCsrf();
 
+// Aturan operasional peminjaman Petugas:
+// Senin-Kamis 07:30-15:30 WIB
+// Jumat       07:30-14:00 WIB
+// Sabtu-Minggu ditolak.
+date_default_timezone_set('Asia/Jakarta');
+
+$hari = (int) date('N'); // 1=Senin ... 7=Minggu
+$jamMenit = ((int) date('H') * 60) + (int) date('i');
+
+$jamBuka = 7 * 60 + 30;
+$jamTutup = null;
+
+if ($hari >= 1 && $hari <= 4) {
+    $jamTutup = 15 * 60 + 30;
+} elseif ($hari === 5) {
+    $jamTutup = 14 * 60;
+}
+
+if ($jamTutup === null || $jamMenit < $jamBuka || $jamMenit >= $jamTutup) {
+    header('Location: peminjaman.php?pesan=di_luar_jam');
+    exit;
+}
+
 $id_petugas = $_SESSION['petugas_id'];
 $id_anggota = filter_input(INPUT_POST, 'id_anggota', FILTER_VALIDATE_INT);
 $id_buku    = filter_input(INPUT_POST, 'id_buku', FILTER_VALIDATE_INT);
