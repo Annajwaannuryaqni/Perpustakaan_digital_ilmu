@@ -32,13 +32,13 @@ foreach ($bukuDipinjam as $p) {
     if ($tanggalAcuan > $p['tanggal_jatuh_tempo']) {
         $totalTerlambat++;
         $hariTerlambat = floor((strtotime($tanggalAcuan) - strtotime($p['tanggal_jatuh_tempo'])) / 86400);
-        $estimasiDenda += min($hariTerlambat * TARIF_DENDA_PER_HARI, TARIF_DENDA_MAKSIMUM);
+        $estimasiDenda += $hariTerlambat * TARIF_DENDA_PER_HARI;
     }
 }
 
-// Total denda yang MASIH HARUS DIBAYAR (bukan seluruh denda historis —
-// kalau sudah ditandai Lunas oleh admin, tidak lagi dihitung di sini,
-// supaya siswa tidak terus melihat tagihan yang sebenarnya sudah lunas)
+// Total denda yang MASIH HARUS DIBAYAR. Denda yang sudah Lunas tidak dihitung.
+// Denda dari transaksi yang sudah dikonfirmasi petugas + belum lunas dijumlahkan
+// dengan estimasi denda dari buku yang masih aktif dan sudah terlambat.
 $stmtDendaTercatat = $koneksi->prepare("SELECT COALESCE(SUM(denda),0) AS total FROM transaksi WHERE id_anggota = ? AND status_denda = 'Belum Lunas'");
 $stmtDendaTercatat->execute([$id_anggota]);
 $dendaTercatat = $stmtDendaTercatat->fetch()['total'];
@@ -187,10 +187,22 @@ function siswaIcon($name, $class = 'ic') {
         <div class="stat-icon gold"><?= siswaIcon('coin') ?></div>
         <div>
           <div class="stat-value">Rp<?= number_format($dendaTercatat + $estimasiDenda, 0, ',', '.') ?></div>
-          <div class="stat-label">Total Denda<?= $estimasiDenda ? ' (termasuk estimasi berjalan)' : '' ?></div>
+          <div class="stat-label">Total Denda Belum Lunas<?= $estimasiDenda ? ' (termasuk estimasi berjalan)' : '' ?></div>
         </div>
       </div>
     </div>
+
+    <?php if ((float)$dendaTercatat > 0): ?>
+    <div class="card" style="margin-top:18px; border:1px solid rgba(217,119,6,.2); background:rgba(217,119,6,.035);">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+        <div>
+          <h3 style="margin:0 0 5px; color:var(--navy);">Pembayaran Denda</h3>
+          <p style="margin:0; color:var(--muted); font-size:.82rem;">Ada denda yang sudah tercatat dan belum lunas. Pilih pembayaran Cash atau QRIS sesuai kebutuhan.</p>
+        </div>
+        <a href="pembayaran_denda.php" class="btn">Bayar / Pilih Metode</a>
+      </div>
+    </div>
+    <?php endif; ?>
 
     <!-- Buku Sedang Dipinjam & Jatuh Tempo -->
     <div class="card">

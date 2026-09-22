@@ -53,7 +53,7 @@ try {
     $denda = 0;
     if ($telat) {
         $hari_terlambat = floor((strtotime($tanggal_pengajuan) - strtotime($transaksi['tanggal_jatuh_tempo'])) / 86400);
-        $denda = min($hari_terlambat * TARIF_DENDA_PER_HARI, TARIF_DENDA_MAKSIMUM);
+        $denda = $hari_terlambat * TARIF_DENDA_PER_HARI;
     }
 
     // Catat petugas yang memproses transaksi jika sebelumnya belum punya

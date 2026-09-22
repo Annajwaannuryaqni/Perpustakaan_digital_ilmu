@@ -3,6 +3,8 @@ require_once '../includes/auth.php';
 requirePetugas();
 require_once '../config/database.php';
 
+date_default_timezone_set('Asia/Jakarta');
+
 $daftarTransaksi = $koneksi->query("
     SELECT t.*, a.nama_lengkap AS nama_anggota, a.kelas, b.judul, b.deleted_at, p.nama_lengkap AS nama_petugas
     FROM transaksi t
@@ -57,14 +59,38 @@ $activeMenu = 'aktivitas';
             <td data-label="Jatuh Tempo"><?= $t['tanggal_jatuh_tempo'] ?></td>
             <td data-label="Tgl Kembali"><?= $t['tanggal_kembali'] ?? '-' ?></td>
             <td data-label="Status">
+              <?php
+                // Status tampilan disamakan dengan dashboard admin:
+                // - Dipinjam + sudah lewat jatuh tempo = Terlambat
+                // - Sudah dikembalikan + melewati jatuh tempo = Dikembalikan — Terlambat
+                // - Sudah dikembalikan tepat waktu = Dikembalikan
+                // - Menunggu konfirmasi = Menunggu Konfirmasi
+                $tanggalPatokan = !empty($t['tanggal_pengajuan_kembali'])
+                    ? $t['tanggal_pengajuan_kembali']
+                    : ($t['tanggal_kembali'] ?? date('Y-m-d'));
+                $terlambat = !empty($t['tanggal_jatuh_tempo'])
+                    && $tanggalPatokan > $t['tanggal_jatuh_tempo'];
+              ?>
               <?php if ($t['status'] === 'dipinjam'): ?>
-                <span class="badge badge-pending">Dipinjam</span>
+                <?php if ($terlambat): ?>
+                  <span class="badge badge-habis">Terlambat</span>
+                <?php else: ?>
+                  <span class="badge badge-pending">Dipinjam</span>
+                <?php endif; ?>
               <?php elseif ($t['status'] === 'menunggu_konfirmasi'): ?>
                 <span class="badge badge-pending">Menunggu Konfirmasi</span>
               <?php elseif ($t['status'] === 'terlambat'): ?>
-                <span class="badge badge-habis">Terlambat</span>
+                <?php if (!empty($t['tanggal_kembali'])): ?>
+                  <span class="badge badge-habis">Dikembalikan — Terlambat</span>
+                <?php else: ?>
+                  <span class="badge badge-habis">Terlambat</span>
+                <?php endif; ?>
               <?php else: ?>
-                <span class="badge badge-ok">Dikembalikan</span>
+                <?php if ($terlambat): ?>
+                  <span class="badge badge-habis">Dikembalikan — Terlambat</span>
+                <?php else: ?>
+                  <span class="badge badge-ok">Dikembalikan</span>
+                <?php endif; ?>
               <?php endif; ?>
             </td>
             <td data-label="Diproses Oleh"><?= $t['nama_petugas'] ? htmlspecialchars($t['nama_petugas']) : '<span style="color:#94a3b8;">Swalayan</span>' ?></td>

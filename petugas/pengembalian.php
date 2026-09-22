@@ -45,10 +45,7 @@ foreach ($daftarPengembalian as $p) {
     $hariTerlambat = max(0, (int)$p['hari_terlambat']);
     if ($hariTerlambat > 0) {
         $totalTerlambat++;
-        $totalEstimasiDenda += min(
-            $hariTerlambat * TARIF_DENDA_PER_HARI,
-            TARIF_DENDA_MAKSIMUM
-        );
+        $totalEstimasiDenda += $hariTerlambat * TARIF_DENDA_PER_HARI;
     }
 }
 
@@ -245,7 +242,7 @@ $activeMenu = 'pengembalian';
               <?php foreach ($daftarPengembalian as $p):
                 $hariTerlambat = max(0, (int)$p['hari_terlambat']);
                 $estimasiDenda = $hariTerlambat > 0
-                    ? min($hariTerlambat * TARIF_DENDA_PER_HARI, TARIF_DENDA_MAKSIMUM)
+                    ? $hariTerlambat * TARIF_DENDA_PER_HARI
                     : 0;
               ?>
                 <tr>

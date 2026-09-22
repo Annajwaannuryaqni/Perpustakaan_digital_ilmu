@@ -60,7 +60,7 @@ $activeMenu = 'terlambat';
         </thead>
         <tbody>
           <?php foreach ($daftarTerlambat as $d):
-            $denda = min((int)$d['hari_terlambat'] * TARIF_DENDA_PER_HARI, TARIF_DENDA_MAKSIMUM);
+            $denda = (int)$d['hari_terlambat'] * TARIF_DENDA_PER_HARI;
           ?>
           <tr>
             <td data-label="Anggota" style="font-weight:600;"><?= htmlspecialchars($d['nama_anggota']) ?> <br><small style="color:var(--muted); font-weight:400;">NIS <?= htmlspecialchars($d['nis']) ?></small></td>

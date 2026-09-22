@@ -21,7 +21,17 @@ $daftarPinjaman=$stmt->fetchAll();
 
 $totalDipinjam=count($daftarPinjaman);
 $totalTerlambat=0;
-$totalDendaKeseluruhan=0;
+
+// Denda yang SUDAH tercatat tetapi belum dibayar tetap harus terlihat di
+// halaman siswa, meskipun bukunya sudah dikembalikan. Setelah petugas
+// menandai denda sebagai lunas, transaksi tidak lagi ikut dijumlahkan.
+$stmtDendaBelumLunas = $koneksi->prepare("
+    SELECT COALESCE(SUM(denda), 0)
+    FROM transaksi
+    WHERE id_anggota = ? AND status_denda = 'Belum Lunas' AND denda > 0
+");
+$stmtDendaBelumLunas->execute([$id_anggota]);
+$totalDendaBelumLunas = (int)$stmtDendaBelumLunas->fetchColumn();
 
 foreach($daftarPinjaman as $p){
     // Buku yang sudah diajukan pengembaliannya (menunggu_konfirmasi) dendanya
@@ -33,7 +43,14 @@ foreach($daftarPinjaman as $p){
     if($tanggalAcuanHitung>$jatuhTempoHitung){
         $totalTerlambat++;
         $hariTerlambatHitung=floor(($tanggalAcuanHitung-$jatuhTempoHitung)/86400);
-        $totalDendaKeseluruhan+=min($hariTerlambatHitung*TARIF_DENDA_PER_HARI, TARIF_DENDA_MAKSIMUM);
+
+        // Untuk transaksi yang masih berjalan/menunggu konfirmasi, denda
+        // yang belum tersimpan dihitung sebagai estimasi dan ditambahkan
+        // ke total denda belum lunas. Setelah petugas mengonfirmasi, denda
+        // resminya tersimpan di transaksi dan akan terhitung dari query di atas.
+        if((int)($p['denda'] ?? 0) <= 0){
+            $totalDendaBelumLunas += $hariTerlambatHitung * TARIF_DENDA_PER_HARI;
+        }
     }
 }
 
@@ -245,8 +262,8 @@ $tanggalIndonesia=date('d').' '.$namaBulan[(int)date('n')].' '.date('Y');
                 </svg>
             </div>
             <div class="summary-content">
-                <strong>Rp<?= number_format($totalDendaKeseluruhan,0,',','.') ?></strong>
-                <span>Total Denda Berjalan</span>
+                <strong>Rp<?= number_format($totalDendaBelumLunas,0,',','.') ?></strong>
+                <span>Total Denda Belum Lunas</span>
             </div>
         </div>
     </div>
@@ -402,7 +419,7 @@ paint(0,false);
                 $jatuhTempo=strtotime($p['tanggal_jatuh_tempo']);
                 $telat=$tanggalAcuanBaris>$jatuhTempo;
                 $hariTerlambat=$telat?floor(($tanggalAcuanBaris-$jatuhTempo)/86400):0;
-                $denda=$telat?min($hariTerlambat*TARIF_DENDA_PER_HARI, TARIF_DENDA_MAKSIMUM):0;
+                $denda=$telat ? $hariTerlambat * TARIF_DENDA_PER_HARI : 0;
             ?>
                 <tr>
                     <td data-label="Judul">

@@ -4,22 +4,95 @@ requireAdmin();
 require_once '../config/database.php';
 
 date_default_timezone_set('Asia/Jakarta');
+$today = date('Y-m-d');
 
 // ---- Statistik ringkas ----
-$totalJudul   = $koneksi->query("SELECT COUNT(*) AS total FROM buku")->fetch()['total'];
-$totalStok    = $koneksi->query("SELECT COALESCE(SUM(stok),0) AS total FROM buku")->fetch()['total'];
+$totalJudul   = $koneksi->query("SELECT COUNT(*) AS total FROM buku WHERE deleted_at IS NULL")->fetch()['total'];
+$totalStok    = $koneksi->query("SELECT COALESCE(SUM(stok),0) AS total FROM buku WHERE deleted_at IS NULL")->fetch()['total'];
 $totalAnggota = $koneksi->query("SELECT COUNT(*) AS total FROM anggota")->fetch()['total'];
 
-// ---- Statistik transaksi (peminjaman aktif, riwayat terlambat, denda belum lunas) ----
-$peminjamanAktif = $koneksi->query("SELECT COUNT(*) AS total FROM transaksi WHERE status IN ('dipinjam','menunggu_konfirmasi')")->fetch()['total'];
-$terlambat       = $koneksi->query("SELECT COUNT(*) AS total FROM transaksi WHERE status = 'terlambat'")->fetch()['total'];
+// ---- Statistik transaksi ----
+// Peminjaman Aktif hanya berarti buku masih dipinjam oleh siswa.
+$peminjamanAktif = $koneksi->query("
+    SELECT COUNT(*) AS total
+    FROM transaksi
+    WHERE status = 'dipinjam'
+")->fetch()['total'];
+
+// Buku Sedang Terlambat dihitung dari data transaksi aktif, lalu dibandingkan
+// di PHP menggunakan tanggal hari ini yang sama dengan tampilan dashboard.
+// Cara ini menghindari perbedaan tanggal/jam antara PHP dan MySQL.
+$transaksiAktif = $koneksi->query("
+    SELECT t.id_transaksi, t.status, t.tanggal_jatuh_tempo,
+           t.tanggal_pengajuan_kembali, a.nama_lengkap, b.judul
+    FROM transaksi t
+    JOIN anggota a ON a.id_anggota = t.id_anggota
+    LEFT JOIN buku b ON b.id_buku = t.id_buku
+    WHERE t.status IN ('dipinjam', 'menunggu_konfirmasi')
+      AND t.tanggal_jatuh_tempo IS NOT NULL
+")->fetchAll();
+
+$bukuSedangTerlambatDetail = [];
+foreach ($transaksiAktif as $row) {
+    // Saat masih dipinjam, acuannya hari ini.
+    // Saat menunggu konfirmasi, acuannya tanggal siswa mengajukan pengembalian.
+    $tanggalAcuan = ($row['status'] === 'menunggu_konfirmasi' && !empty($row['tanggal_pengajuan_kembali']))
+        ? $row['tanggal_pengajuan_kembali']
+        : $today;
+
+    if ($tanggalAcuan > $row['tanggal_jatuh_tempo']) {
+        $row['hari_terlambat'] = (int) floor((strtotime($tanggalAcuan) - strtotime($row['tanggal_jatuh_tempo'])) / 86400);
+        $bukuSedangTerlambatDetail[] = $row;
+    }
+}
+
+usort($bukuSedangTerlambatDetail, function ($a, $b) {
+    if ($a['hari_terlambat'] === $b['hari_terlambat']) {
+        return strcmp($a['tanggal_jatuh_tempo'], $b['tanggal_jatuh_tempo']);
+    }
+    return $b['hari_terlambat'] <=> $a['hari_terlambat'];
+});
+
+$terlambat = count($bukuSedangTerlambatDetail);
 // Sebelumnya menjumlahkan SEMUA denda (termasuk yang sudah lunas dibayar),
 // sehingga angka ini tidak pernah cocok dengan kondisi nyata. Sekarang
 // hanya menjumlahkan denda yang BELUM lunas — konsisten dengan kartu
 // "Denda Belum Lunas" di halaman Transaksi.
+$totalDendaTercatat = $koneksi->query("SELECT COALESCE(SUM(denda),0) AS total FROM transaksi")->fetch()['total'];
 $totalDendaBelumLunas = $koneksi->query("SELECT COALESCE(SUM(denda),0) AS total FROM transaksi WHERE status_denda = 'Belum Lunas'")->fetch()['total'];
-$totalDendaTerkumpul = $koneksi->query("SELECT COALESCE(SUM(denda),0) AS total FROM transaksi WHERE status_denda = 'Lunas'")->fetch()['total'];
 $totalDenda = $totalDendaBelumLunas;
+
+// ---- Informasi penting yang perlu diperhatikan admin hari ini ----
+$kunjunganHariIni = $koneksi->query("
+    SELECT COUNT(*) AS total
+    FROM kunjungan
+    WHERE DATE(waktu_kunjungan) = CURDATE()
+")->fetch()['total'];
+
+$menungguKonfirmasi = $koneksi->query("
+    SELECT COUNT(*) AS total
+    FROM transaksi
+    WHERE status = 'menunggu_konfirmasi'
+")->fetch()['total'];
+
+$bukuStokHabis = $koneksi->query("
+    SELECT COUNT(*) AS total
+    FROM buku
+    WHERE COALESCE(stok, 0) <= 0
+      AND deleted_at IS NULL
+")->fetch()['total'];
+
+$bukuSedangTerlambatDetail = array_slice($bukuSedangTerlambatDetail, 0, 5);
+
+$bukuTerlaris = $koneksi->query("
+    SELECT b.judul, COUNT(t.id_transaksi) AS jumlah_dipinjam
+    FROM transaksi t
+    JOIN buku b ON b.id_buku = t.id_buku
+    WHERE b.deleted_at IS NULL
+    GROUP BY b.id_buku, b.judul
+    ORDER BY jumlah_dipinjam DESC, b.judul ASC
+    LIMIT 5
+")->fetchAll();
 
 // ---- Rekap jumlah judul & total stok per genre/kategori ----
 $stokPerGenre = $koneksi->query("
@@ -27,7 +100,7 @@ $stokPerGenre = $koneksi->query("
            COUNT(b.id_buku) AS jumlah_judul,
            COALESCE(SUM(b.stok), 0) AS total_stok
     FROM kategori k
-    LEFT JOIN buku b ON b.id_kategori = k.id_kategori
+    LEFT JOIN buku b ON b.id_kategori = k.id_kategori AND b.deleted_at IS NULL
     GROUP BY k.id_kategori, k.nama_kategori
     ORDER BY k.nama_kategori ASC
 ")->fetchAll();
@@ -87,6 +160,9 @@ function dashIcon($name, $class = 'ic') {
         'calendar'  => '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/><line x1="8" y1="3" x2="8" y2="6.5"/><line x1="16" y1="3" x2="16" y2="6.5"/>',
         'logout'    => '<path d="M11 4H6.5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2H11"/><polyline points="15.5 8 19.5 12 15.5 16"/><line x1="19.5" y1="12" x2="9" y2="12"/>',
         'activity'  => '<polyline points="3.5 12 8 12 10 7 14 17 16 12 20.5 12"/>',
+        'alert'     => '<path d="M12 3.5 21 20H3Z"/><line x1="12" y1="8.5" x2="12" y2="13"/><circle cx="12" cy="16.5" r=".7"/>',
+        'check'     => '<path d="m5 12.5 4 4L19.5 6"/>',
+        'calendar2' => '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/><line x1="8" y1="3" x2="8" y2="6.5"/><line x1="16" y1="3" x2="16" y2="6.5"/><line x1="8" y1="13" x2="10.5" y2="13"/><line x1="13.5" y1="13" x2="16" y2="13"/><line x1="8" y1="16" x2="10.5" y2="16"/><line x1="13.5" y1="16" x2="16" y2="16"/>',
     ];
     $d = $paths[$name] ?? '';
     return '<svg class="'.$class.'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">'.$d.'</svg>';
@@ -136,8 +212,83 @@ function dashIcon($name, $class = 'ic') {
   .status-pill.menunggu { background: rgba(217,119,6,.12); color: #b45309; }
   .status-pill.selesai  { background: rgba(52,211,153,.15); color: #16a34a; }
   .status-pill.telat    { background: rgba(248,113,113,.15); color: #dc2626; }
+  .status-pill.telat-kembali { background: rgba(248,113,113,.12); color: #dc2626; }
 
   .empty-row { text-align: center; color: #64748b; padding: 28px !important; font-size: .85rem; }
+
+  .admin-alert-card {
+    padding: 24px 28px;
+    margin-bottom: 24px;
+  }
+  .admin-alert-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .admin-alert-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 15px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #fff;
+    text-decoration: none;
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  }
+  .admin-alert-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(15,23,42,.06);
+    border-color: #cbd5e1;
+  }
+  .admin-alert-icon {
+    width: 40px; height: 40px; flex: 0 0 40px;
+    display: grid; place-items: center; border-radius: 12px;
+    background: #eff6ff; color: #2563eb;
+  }
+  .admin-alert-icon svg { width: 20px; height: 20px; }
+  .admin-alert-item.warning .admin-alert-icon { background: #fffbeb; color: #d97706; }
+  .admin-alert-item.danger .admin-alert-icon { background: #fef2f2; color: #dc2626; }
+  .admin-alert-item.success .admin-alert-icon { background: #ecfdf5; color: #059669; }
+  .admin-alert-content { min-width: 0; }
+  .admin-alert-content strong { display: block; color: #0f172a; font-size: 16px; line-height: 1.2; }
+  .admin-alert-content span { display: block; margin-top: 4px; color: #64748b; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .admin-insight-grid {
+    display: grid;
+    grid-template-columns: 1.1fr .9fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+  .admin-mini-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .admin-mini-table th {
+    padding: 10px 0; text-align: left; color: #94a3b8;
+    font-size: 10px; text-transform: uppercase; letter-spacing: .04em;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .admin-mini-table td {
+    padding: 12px 0; color: #475569; font-size: 12px;
+    border-bottom: 1px solid #f1f5f9; vertical-align: middle;
+  }
+  .admin-mini-table tr:last-child td { border-bottom: 0; }
+  .admin-mini-title { color: #0f172a; font-weight: 700; }
+  .admin-mini-sub { color: #94a3b8; font-size: 10px; margin-top: 3px; }
+  .admin-number-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 34px; padding: 6px 9px; border-radius: 999px;
+    background: #eff6ff; color: #2563eb; font-weight: 800; font-size: 11px;
+  }
+  .admin-days-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 6px 9px; border-radius: 999px;
+    background: #fef2f2; color: #dc2626; font-weight: 800; font-size: 11px;
+  }
+  .admin-link-inline { color: #2563eb; text-decoration: none; font-size: 11px; font-weight: 700; }
+  .admin-link-inline:hover { text-decoration: underline; }
+  .admin-no-data { text-align: center; padding: 28px 8px; color: #94a3b8; font-size: 12px; }
 
   /* ===== Grafik: tinggi tetap terkontrol di semua ukuran layar ===== */
   .chart-wrap { position: relative; height: 300px; width: 100%; }
@@ -156,6 +307,8 @@ function dashIcon($name, $class = 'ic') {
     .quick-menu-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
     .chart-grid { grid-template-columns: 1fr !important; }
+    .admin-alert-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .admin-insight-grid { grid-template-columns: 1fr; }
   }
 
   /* =======================================================
@@ -182,6 +335,9 @@ function dashIcon($name, $class = 'ic') {
   @media (max-width: 600px) {
     .quick-menu-grid { grid-template-columns: 1fr; }
     .stat-grid { grid-template-columns: 1fr !important; gap: 12px; }
+    .admin-alert-grid { grid-template-columns: 1fr; }
+    .admin-alert-card { padding: 18px 16px; }
+    .admin-insight-grid { grid-template-columns: 1fr; }
     .chart-wrap { height: 240px; }
 
     .page-head h1 { font-size: 1.15rem; gap: 8px; }
@@ -279,15 +435,64 @@ function dashIcon($name, $class = 'ic') {
         <div class="stat-icon" style="background:rgba(248,113,113,.15); color:#dc2626;"><?= dashIcon('clock') ?></div>
         <div>
           <div class="stat-value" ><?= $terlambat ?></div>
-          <div class="stat-label" >Terlambat Dikembalikan</div>
+          <div class="stat-label" >Buku Sedang Terlambat</div>
         </div>
       </div>
       <div class="stat-card-modern">
         <div class="stat-icon gold"><?= dashIcon('coin') ?></div>
         <div>
-          <div class="stat-value" >Rp<?= number_format($totalDenda, 0, ',', '.') ?></div>
+          <div class="stat-value" >Rp<?= number_format($totalDendaTercatat, 0, ',', '.') ?></div>
+          <div class="stat-label" >Total Denda Tercatat</div>
+        </div>
+      </div>
+      <div class="stat-card-modern">
+        <div class="stat-icon" style="background:rgba(248,113,113,.15); color:#dc2626;"><?= dashIcon('coin') ?></div>
+        <div>
+          <div class="stat-value" >Rp<?= number_format($totalDendaBelumLunas, 0, ',', '.') ?></div>
           <div class="stat-label" >Denda Belum Lunas</div>
         </div>
+      </div>
+      <div class="stat-card-modern">
+        <div class="stat-icon" style="background:rgba(16,185,129,.10); color:#059669;"><?= dashIcon('calendar2') ?></div>
+        <div>
+          <div class="stat-value" ><?= $kunjunganHariIni ?></div>
+          <div class="stat-label" >Kunjungan Hari Ini</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Informasi yang Perlu Ditangani -->
+    <div class="glass-card admin-alert-card">
+      <h3 class="section-title"><?= dashIcon('alert') ?> Informasi Penting Hari Ini</h3>
+      <div class="admin-alert-grid">
+        <a href="transaksi.php" class="admin-alert-item danger">
+          <span class="admin-alert-icon"><?= dashIcon('clock') ?></span>
+          <span class="admin-alert-content">
+            <strong><?= (int)$terlambat ?></strong>
+            <span>Buku sedang terlambat</span>
+          </span>
+        </a>
+        <a href="transaksi.php" class="admin-alert-item warning">
+          <span class="admin-alert-icon"><?= dashIcon('repeat') ?></span>
+          <span class="admin-alert-content">
+            <strong><?= (int)$menungguKonfirmasi ?></strong>
+            <span>Pengembalian menunggu konfirmasi</span>
+          </span>
+        </a>
+        <a href="transaksi.php" class="admin-alert-item warning">
+          <span class="admin-alert-icon"><?= dashIcon('coin') ?></span>
+          <span class="admin-alert-content">
+            <strong>Rp<?= number_format($totalDendaBelumLunas, 0, ',', '.') ?></strong>
+            <span>Denda belum lunas</span>
+          </span>
+        </a>
+        <a href="transaksi.php" class="admin-alert-item danger">
+          <span class="admin-alert-icon"><?= dashIcon('book') ?></span>
+          <span class="admin-alert-content">
+            <strong><?= (int)$bukuStokHabis ?></strong>
+            <span>Buku stok habis</span>
+          </span>
+        </a>
       </div>
     </div>
 
@@ -319,7 +524,12 @@ function dashIcon($name, $class = 'ic') {
           </thead>
           <tbody>
             <?php foreach ($aktivitasTerbaru as $t):
-              $telat = $t['status'] === 'dipinjam' && $t['tanggal_jatuh_tempo'] < date('Y-m-d');
+              $tanggalAcuanAktivitas = ($t['status'] === 'menunggu_konfirmasi' && !empty($t['tanggal_pengajuan_kembali']))
+                  ? $t['tanggal_pengajuan_kembali']
+                  : $today;
+              $telat = in_array($t['status'], ['dipinjam', 'menunggu_konfirmasi'], true)
+                    && !empty($t['tanggal_jatuh_tempo'])
+                    && $tanggalAcuanAktivitas > $t['tanggal_jatuh_tempo'];
             ?>
             <tr>
               <td><?= htmlspecialchars($t['judul'] ?? 'Buku tidak ditemukan') ?><?php if (!empty($t['deleted_at'])): ?> <span class="badge badge-habis">Diarsipkan</span><?php endif; ?></td>
@@ -327,7 +537,9 @@ function dashIcon($name, $class = 'ic') {
               <td><?= htmlspecialchars($t['tanggal_pinjam']) ?></td>
               <td><?= htmlspecialchars($t['tanggal_jatuh_tempo']) ?></td>
               <td>
-                <?php if ($telat): ?>
+                <?php if ($t['status'] === 'terlambat' && !empty($t['tanggal_kembali'])): ?>
+                  <span class="status-pill telat-kembali">Dikembalikan — Terlambat</span>
+                <?php elseif ($telat): ?>
                   <span class="status-pill telat">Terlambat</span>
                 <?php elseif ($t['status'] === 'dipinjam'): ?>
                   <span class="status-pill dipinjam">Dipinjam</span>
@@ -346,6 +558,64 @@ function dashIcon($name, $class = 'ic') {
             <?php endif; ?>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Insight yang membantu admin mengambil tindakan -->
+    <div class="admin-insight-grid">
+      <div class="glass-card" style="padding:24px 28px; margin-bottom:0;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:4px;">
+          <h3 class="section-title" style="margin-bottom:0;"><?= dashIcon('library') ?> Buku Paling Sering Dipinjam</h3>
+          <a href="transaksi.php" class="admin-link-inline">Lihat transaksi</a>
+        </div>
+        <?php if ($bukuTerlaris): ?>
+        <div class="table-glass-container" style="border:0;">
+          <table class="admin-mini-table">
+            <thead>
+              <tr><th>Buku</th><th style="text-align:right;">Jumlah</th></tr>
+            </thead>
+            <tbody>
+            <?php foreach ($bukuTerlaris as $b): ?>
+              <tr>
+                <td><div class="admin-mini-title"><?= htmlspecialchars($b['judul']) ?></div></td>
+                <td style="text-align:right;"><span class="admin-number-badge"><?= (int)$b['jumlah_dipinjam'] ?>x</span></td>
+              </tr>
+            <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+        <?php else: ?>
+          <div class="admin-no-data">Belum ada data peminjaman buku.</div>
+        <?php endif; ?>
+      </div>
+
+      <div class="glass-card" style="padding:24px 28px; margin-bottom:0;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:4px;">
+          <h3 class="section-title" style="margin-bottom:0;"><?= dashIcon('clock') ?> Anggota dengan Buku Terlambat</h3>
+          <a href="transaksi.php" class="admin-link-inline">Lihat</a>
+        </div>
+        <?php if ($bukuSedangTerlambatDetail): ?>
+        <div class="table-glass-container" style="border:0;">
+          <table class="admin-mini-table">
+            <thead>
+              <tr><th>Anggota / Buku</th><th style="text-align:right;">Terlambat</th></tr>
+            </thead>
+            <tbody>
+            <?php foreach ($bukuSedangTerlambatDetail as $d): ?>
+              <tr>
+                <td>
+                  <div class="admin-mini-title"><?= htmlspecialchars($d['nama_lengkap']) ?></div>
+                  <div class="admin-mini-sub"><?= htmlspecialchars($d['judul'] ?? 'Buku tidak ditemukan') ?></div>
+                </td>
+                <td style="text-align:right;"><span class="admin-days-badge"><?= (int)$d['hari_terlambat'] ?> hari</span></td>
+              </tr>
+            <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+        <?php else: ?>
+          <div class="admin-no-data">Tidak ada buku yang sedang terlambat.</div>
+        <?php endif; ?>
       </div>
     </div>
 

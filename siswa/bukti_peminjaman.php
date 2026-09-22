@@ -101,12 +101,90 @@ $status = $statusLabel[$data['status']] ?? ucfirst($data['status']);
   .due-highlight span:last-child { font-family: 'Poppins', sans-serif; font-weight: 800; color: var(--navy); font-size: 1rem; }
 
   @media print {
+    @page {
+      /* Kertas thermal 80 mm dengan panjang mengikuti isi struk. */
+      size: 80mm 170mm;
+      margin: 0;
+    }
+
+    html, body {
+      width: 80mm;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #fff !important;
+    }
+
     body * { visibility: hidden; }
     .receipt, .receipt * { visibility: visible; }
-    .receipt { position: absolute; top: 0; left: 0; width: 100%; border: none; box-shadow: none; margin: 0; padding: 0; }
-    .no-print, .success-banner, .receipt-actions, .confirm-steps { display: none !important; }
-    .container { padding: 0 !important; }
-    @page { size: A4; margin: 20mm; }
+
+    .receipt-wrap {
+      width: 80mm !important;
+      max-width: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    .receipt {
+      break-inside: avoid;
+      page-break-inside: avoid;
+      position: relative;
+      top: auto;
+      left: auto;
+      width: 80mm !important;
+      max-width: none !important;
+      box-sizing: border-box;
+      border: none !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      margin: 0 !important;
+      padding: 3mm 3.5mm !important;
+      background: #fff !important;
+    }
+
+    .receipt-head {
+      padding-bottom: 3mm;
+      margin-bottom: 3mm;
+    }
+
+    .receipt-title {
+      margin-bottom: 3mm;
+    }
+
+    .receipt-meta,
+    .receipt-row {
+      font-size: 9.5px;
+      line-height: 1.3;
+    }
+
+    .receipt-section {
+      padding-top: 2mm;
+      margin-top: 2mm;
+    }
+
+    .receipt-section h4 {
+      font-size: 9px;
+      margin-bottom: 1.2mm;
+    }
+
+    .receipt-info,
+    .receipt-footer {
+      font-size: 9px;
+      line-height: 1.35;
+    }
+
+    .receipt-head .lib-name { font-size: 14px; }
+    .receipt-head .lib-sub { font-size: 9px; }
+    .receipt-title { font-size: 10px; margin-bottom: 2mm; }
+    .receipt-meta { margin-bottom: 2mm; }
+    .receipt-head { padding-bottom: 2mm; margin-bottom: 2mm; }
+    .due-highlight { padding: 2mm 2.5mm; margin-top: 2mm; border-radius: 8px; }
+    .due-highlight span:first-child { font-size: 9px; }
+    .due-highlight span:last-child { font-size: 11px; }
+    .receipt-row { padding: 1px 0; gap: 6px; }
+
+    .no-print, .success-banner, .receipt-actions, .confirm-steps, .back-link {
+      display: none !important;
+    }
   }
 </style>
 </head>
