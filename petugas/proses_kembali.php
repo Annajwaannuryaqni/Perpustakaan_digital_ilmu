@@ -4,6 +4,8 @@ requirePetugas();
 require_once '../config/database.php';
 require_once '../config/constants.php'; // TARIF_DENDA_PER_HARI — satu sumber tarif denda untuk seluruh aplikasi
 
+date_default_timezone_set('Asia/Jakarta');
+
 requireCsrf();
 
 $id_petugas = $_SESSION['petugas_id'];
@@ -42,22 +44,23 @@ try {
     // Fallback ke tanggal hari ini hanya untuk transaksi lama yang sudah
     // terlanjur berstatus 'menunggu_konfirmasi' SEBELUM kolom ini ada
     // (nilainya masih NULL), supaya tidak error.
-    $tanggal_kembali_resmi = $transaksi['tanggal_pengajuan_kembali'] ?? date('Y-m-d');
+    $tanggal_pengajuan = $transaksi['tanggal_pengajuan_kembali'] ?? date('Y-m-d');
+    $tanggal_kembali_resmi = date('Y-m-d');
 
-    $telat = $tanggal_kembali_resmi > $transaksi['tanggal_jatuh_tempo'];
+    $telat = $tanggal_pengajuan > $transaksi['tanggal_jatuh_tempo'];
     $status_baru = $telat ? 'terlambat' : 'dikembalikan';
 
     $denda = 0;
     if ($telat) {
-        $hari_terlambat = floor((strtotime($tanggal_kembali_resmi) - strtotime($transaksi['tanggal_jatuh_tempo'])) / 86400);
+        $hari_terlambat = floor((strtotime($tanggal_pengajuan) - strtotime($transaksi['tanggal_jatuh_tempo'])) / 86400);
         $denda = min($hari_terlambat * TARIF_DENDA_PER_HARI, TARIF_DENDA_MAKSIMUM);
     }
 
-    // Catat petugas yang memproses pengembalian ini (jika transaksi belum
-    // punya id_petugas dari peminjaman awal, kolomnya diisi di sini).
-    // tanggal_kembali diisi tanggal_kembali_resmi (tanggal siswa mengajukan),
-    // bukan tanggal hari ini petugas mengonfirmasi — supaya tanggal
-    // pengembalian resmi yang tercatat konsisten dengan dasar hitung denda.
+    // Catat petugas yang memproses transaksi jika sebelumnya belum punya
+    // id_petugas (misalnya peminjaman mandiri siswa).
+    // tanggal_pengajuan_kembali menyimpan tanggal siswa mengajukan kembali,
+    // sedangkan tanggal_kembali menyimpan tanggal petugas benar-benar
+    // mengonfirmasi dan menerima buku secara resmi.
     $stmt = $koneksi->prepare("
         UPDATE transaksi SET tanggal_kembali = ?, status = ?, denda = ?,
             status_denda = IF(? > 0, 'Belum Lunas', status_denda),

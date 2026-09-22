@@ -4,7 +4,7 @@ requirePetugas();
 require_once '../config/database.php';
 
 $daftarTransaksi = $koneksi->query("
-    SELECT t.*, a.nama_lengkap AS nama_anggota, a.kelas, b.judul, p.nama_lengkap AS nama_petugas
+    SELECT t.*, a.nama_lengkap AS nama_anggota, a.kelas, b.judul, b.deleted_at, p.nama_lengkap AS nama_petugas
     FROM transaksi t
     JOIN anggota a ON a.id_anggota = t.id_anggota
     LEFT JOIN buku b ON b.id_buku = t.id_buku
@@ -59,8 +59,12 @@ $activeMenu = 'aktivitas';
             <td data-label="Status">
               <?php if ($t['status'] === 'dipinjam'): ?>
                 <span class="badge badge-pending">Dipinjam</span>
+              <?php elseif ($t['status'] === 'menunggu_konfirmasi'): ?>
+                <span class="badge badge-pending">Menunggu Konfirmasi</span>
+              <?php elseif ($t['status'] === 'terlambat'): ?>
+                <span class="badge badge-habis">Terlambat</span>
               <?php else: ?>
-                <span class="badge badge-ok"><?= htmlspecialchars(ucfirst($t['status'])) ?></span>
+                <span class="badge badge-ok">Dikembalikan</span>
               <?php endif; ?>
             </td>
             <td data-label="Diproses Oleh"><?= $t['nama_petugas'] ? htmlspecialchars($t['nama_petugas']) : '<span style="color:#94a3b8;">Swalayan</span>' ?></td>

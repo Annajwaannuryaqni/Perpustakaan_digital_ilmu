@@ -3,14 +3,16 @@ require_once '../includes/auth.php';
 requireAdmin();
 require_once '../config/database.php';
 
+date_default_timezone_set('Asia/Jakarta');
+
 // ---- Statistik ringkas ----
 $totalJudul   = $koneksi->query("SELECT COUNT(*) AS total FROM buku")->fetch()['total'];
 $totalStok    = $koneksi->query("SELECT COALESCE(SUM(stok),0) AS total FROM buku")->fetch()['total'];
 $totalAnggota = $koneksi->query("SELECT COUNT(*) AS total FROM anggota")->fetch()['total'];
 
-// ---- Statistik transaksi (peminjaman aktif, terlambat, total denda terkumpul) ----
+// ---- Statistik transaksi (peminjaman aktif, riwayat terlambat, denda belum lunas) ----
 $peminjamanAktif = $koneksi->query("SELECT COUNT(*) AS total FROM transaksi WHERE status IN ('dipinjam','menunggu_konfirmasi')")->fetch()['total'];
-$terlambat       = $koneksi->query("SELECT COUNT(*) AS total FROM transaksi WHERE status IN ('dipinjam','menunggu_konfirmasi') AND tanggal_jatuh_tempo < CURDATE()")->fetch()['total'];
+$terlambat       = $koneksi->query("SELECT COUNT(*) AS total FROM transaksi WHERE status = 'terlambat'")->fetch()['total'];
 // Sebelumnya menjumlahkan SEMUA denda (termasuk yang sudah lunas dibayar),
 // sehingga angka ini tidak pernah cocok dengan kondisi nyata. Sekarang
 // hanya menjumlahkan denda yang BELUM lunas — konsisten dengan kartu
@@ -131,6 +133,7 @@ function dashIcon($name, $class = 'ic') {
     border-radius: 999px; font-size: .72rem; font-weight: 700; letter-spacing: .02em;
   }
   .status-pill.dipinjam { background: rgba(37,99,235,.10); color: #2563eb; }
+  .status-pill.menunggu { background: rgba(217,119,6,.12); color: #b45309; }
   .status-pill.selesai  { background: rgba(52,211,153,.15); color: #16a34a; }
   .status-pill.telat    { background: rgba(248,113,113,.15); color: #dc2626; }
 
@@ -283,7 +286,7 @@ function dashIcon($name, $class = 'ic') {
         <div class="stat-icon gold"><?= dashIcon('coin') ?></div>
         <div>
           <div class="stat-value" >Rp<?= number_format($totalDenda, 0, ',', '.') ?></div>
-          <div class="stat-label" >Total Denda Tercatat</div>
+          <div class="stat-label" >Denda Belum Lunas</div>
         </div>
       </div>
     </div>
@@ -328,8 +331,12 @@ function dashIcon($name, $class = 'ic') {
                   <span class="status-pill telat">Terlambat</span>
                 <?php elseif ($t['status'] === 'dipinjam'): ?>
                   <span class="status-pill dipinjam">Dipinjam</span>
+                <?php elseif ($t['status'] === 'menunggu_konfirmasi'): ?>
+                  <span class="status-pill menunggu">Menunggu Konfirmasi</span>
+                <?php elseif ($t['status'] === 'terlambat'): ?>
+                  <span class="status-pill telat">Terlambat</span>
                 <?php else: ?>
-                  <span class="status-pill selesai"><?= htmlspecialchars(ucfirst($t['status'])) ?></span>
+                  <span class="status-pill selesai">Dikembalikan</span>
                 <?php endif; ?>
               </td>
             </tr>

@@ -3,6 +3,8 @@ require_once '../includes/auth.php';
 requirePetugas();
 require_once '../config/database.php';
 
+date_default_timezone_set('Asia/Jakarta');
+
 $pesan = $_GET['pesan'] ?? '';
 
 $id_anggota = filter_input(INPUT_GET, 'anggota', FILTER_VALIDATE_INT);
@@ -13,7 +15,7 @@ $anggotaTerpilih = null;
 $bukuTerpilih = null;
 
 if ($id_anggota) {
-    $stmt = $koneksi->prepare("SELECT * FROM anggota WHERE id_anggota = ?");
+    $stmt = $koneksi->prepare("SELECT * FROM anggota WHERE id_anggota = ? AND status = 'aktif'");
     $stmt->execute([$id_anggota]);
     $anggotaTerpilih = $stmt->fetch();
     if (!$anggotaTerpilih) {
@@ -115,7 +117,9 @@ $activeMenu = 'peminjaman';
       </div>
     </div>
 
-    <?php if ($pesan === 'gagal_stok'): ?>
+    <?php if ($pesan === 'di_luar_jam'): ?>
+      <p class="alert alert-gagal">Peminjaman sedang tidak dapat diproses. Jam operasional: Senin–Kamis 07:30–15:30 WIB dan Jumat 07:30–14:00 WIB. Sabtu–Minggu tutup.</p>
+    <?php elseif ($pesan === 'gagal_stok'): ?>
       <p class="alert alert-gagal">Peminjaman gagal, stok buku sudah habis. Silakan pilih buku lain.</p>
     <?php elseif ($pesan === 'ada_denda'): ?>
       <p class="alert alert-gagal">Anggota ini masih punya denda yang belum lunas. Selesaikan pembayaran dendanya dulu (menu Denda) sebelum meminjamkan buku baru.</p>

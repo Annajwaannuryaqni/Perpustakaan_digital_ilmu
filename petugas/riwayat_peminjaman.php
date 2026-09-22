@@ -80,8 +80,8 @@ $riwayat = $stmt->fetchAll();
 // Ringkasan seluruh riwayat (mengikuti filter pencarian/status bila dipakai).
 $summaryStmt = $koneksi->prepare("SELECT
     COUNT(*) AS total_transaksi,
-    SUM(CASE WHEN t.status = 'dikembalikan' THEN 1 ELSE 0 END) AS total_selesai,
-    SUM(CASE WHEN t.status IN ('dipinjam','menunggu_konfirmasi','terlambat') THEN 1 ELSE 0 END) AS total_aktif,
+    SUM(CASE WHEN t.status IN ('dikembalikan','terlambat') THEN 1 ELSE 0 END) AS total_selesai,
+    SUM(CASE WHEN t.status IN ('dipinjam','menunggu_konfirmasi') THEN 1 ELSE 0 END) AS total_aktif,
     COALESCE(SUM(t.denda), 0) AS total_denda
     FROM transaksi t
     JOIN anggota a ON a.id_anggota = t.id_anggota
