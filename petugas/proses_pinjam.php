@@ -74,7 +74,7 @@ try {
     // buku yang sama (sebelumnya tidak dicek sama sekali di alur petugas ini).
     $cekAktif = $koneksi->prepare("
         SELECT id_transaksi FROM transaksi
-        WHERE id_anggota = ? AND id_buku = ? AND status = 'dipinjam'
+        WHERE id_anggota = ? AND id_buku = ? AND status IN ('dipinjam', 'menunggu_konfirmasi')
         FOR UPDATE
     ");
     $cekAktif->execute([$id_anggota, $id_buku]);

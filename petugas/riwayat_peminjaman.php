@@ -54,7 +54,7 @@ $sql = "SELECT
             t.denda,
             t.status_denda,
             t.tanggal_bayar_denda,
-            t.petugas_input,
+            p.nama_lengkap AS nama_petugas,
             a.nama_lengkap,
             a.nis,
             b.judul,
@@ -63,6 +63,7 @@ $sql = "SELECT
         FROM transaksi t
         JOIN anggota a ON a.id_anggota = t.id_anggota
         LEFT JOIN buku b ON b.id_buku = t.id_buku
+        LEFT JOIN petugas p ON p.id_petugas = t.id_petugas
         $whereSql
         ORDER BY t.tanggal_pinjam DESC, t.id_transaksi DESC
         LIMIT :limit OFFSET :offset";
@@ -236,7 +237,7 @@ function riwayatStatusClass($status) {
                 <span class="muted">Tidak ada</span>
               <?php endif; ?>
             </td>
-            <td><?= htmlspecialchars($row['petugas_input'] ?: '-') ?></td>
+            <td><?= htmlspecialchars($row['nama_petugas'] ?: '-') ?></td>
           </tr>
           <?php endforeach; ?>
         <?php endif; ?>

@@ -8,7 +8,7 @@ date_default_timezone_set('Asia/Jakarta');
 
 $MASA_PINJAM_HARI = 7;
 
-/* Jadwal operasional: Senin-Kamis 07:30-15:30, Jumat 07:30-15:00, Sabtu-Minggu tutup
+/* Jadwal operasional: Senin-Kamis 07:30-15:30, Jumat 07:30-14:00, Sabtu-Minggu tutup
    (logika sama persis dengan siswa/presensi.php, supaya konsisten satu aplikasi) */
 $hariIniNum = (int)date('N');
 $jamSekarangCek = date('H:i:s');
@@ -20,7 +20,7 @@ if ($hariIniNum >= 1 && $hariIniNum <= 4) {
     $jamTutupCek = '15:30:00';
 } elseif ($hariIniNum === 5) {
     $jamBukaCek = '07:30:00';
-    $jamTutupCek = '15:00:00';
+    $jamTutupCek = '14:00:00';
 }
 
 $perpustakaanBuka = false;
@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // supaya tidak race condition dengan permintaan lain yang bersamaan.
         $cekAktif = $koneksi->prepare("
             SELECT id_transaksi FROM transaksi
-            WHERE id_anggota = ? AND id_buku = ? AND status = 'dipinjam'
+            WHERE id_anggota = ? AND id_buku = ? AND status IN ('dipinjam', 'menunggu_konfirmasi')
             FOR UPDATE
         ");
         $cekAktif->execute([$id_anggota, $id_buku]);
@@ -335,7 +335,7 @@ $stokTersedia = (int)$buku['stok'] > 0;
     <?php elseif (!$perpustakaanBuka): ?>
       <div class="confirm-alert-gagal">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5"/><path d="M12 16.2h.01"/></svg>
-        <span>Perpustakaan sedang tutup. Peminjaman hanya bisa dilakukan Senin-Kamis 07:30-15:30 dan Jumat 07:30-15:00.</span>
+        <span>Perpustakaan sedang tutup. Peminjaman hanya bisa dilakukan Senin-Kamis 07:30-15:30 dan Jumat 07:30-14:00.</span>
       </div>
     <?php endif; ?>
 

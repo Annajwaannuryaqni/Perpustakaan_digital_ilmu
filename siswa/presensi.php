@@ -8,7 +8,7 @@ date_default_timezone_set('Asia/Jakarta');
 $id_anggota=$_SESSION['anggota_id'];
 $pesan='';
 
-/* Jadwal operasional: Senin-Kamis 07:30-15:30, Jumat 07:30-15:00, Sabtu-Minggu tutup */
+/* Jadwal operasional: Senin-Kamis 07:30-15:30, Jumat 07:30-14:00, Sabtu-Minggu tutup */
 $hari=(int)date('N');
 $jamSekarang=date('H:i:s');
 $jamBuka=null;
@@ -19,7 +19,7 @@ if($hari>=1&&$hari<=4){
     $jamTutup='15:30:00';
 }elseif($hari===5){
     $jamBuka='07:30:00';
-    $jamTutup='15:00:00';
+    $jamTutup='14:00:00';
 }
 
 $perpustakaanBuka=false;
@@ -48,7 +48,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&!$sudahPresensi){
     if($hariPost>=1&&$hariPost<=4){
         $bolehPresensi=($jamPost>='07:30:00'&&$jamPost<'15:30:00');
     }elseif($hariPost===5){
-        $bolehPresensi=($jamPost>='07:30:00'&&$jamPost<'15:00:00');
+        $bolehPresensi=($jamPost>='07:30:00'&&$jamPost<'14:00:00');
     }
 
     if(!$bolehPresensi){
@@ -211,7 +211,7 @@ $tanggalIndonesia=date('d').' '.$namaBulan[(int)date('n')].' '.date('Y');
         </div>
         <div class="jadwal-item">
             <span>Jumat</span>
-            <strong>07:30 – 15:00</strong>
+            <strong>07:30 – 14:00</strong>
         </div>
         <div class="jadwal-item">
             <span>Sabtu – Minggu</span>

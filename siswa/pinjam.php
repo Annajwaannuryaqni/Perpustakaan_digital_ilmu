@@ -156,7 +156,7 @@ $totalGenre = count($bukuPerGenre);
 <?php elseif($pesan==='ada_terlambat'): ?>
 <p class="alert alert-gagal">Kamu masih punya buku yang sudah lewat jatuh tempo. Kembalikan buku tersebut terlebih dahulu sebelum meminjam buku baru.</p>
 <?php elseif($pesan==='tutup'): ?>
-<p class="alert alert-gagal">Perpustakaan sedang tutup. Peminjaman hanya bisa dilakukan Senin-Kamis 07:30-15:30 dan Jumat 07:30-15:00.</p>
+<p class="alert alert-gagal">Perpustakaan sedang tutup. Peminjaman hanya bisa dilakukan Senin-Kamis 07:30-15:30 dan Jumat 07:30-14:00.</p>
 <?php endif; ?>
 
 <div class="catalog-card">
