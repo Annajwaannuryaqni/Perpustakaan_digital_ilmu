@@ -12,7 +12,7 @@ $stmtKembaliHariIni = $koneksi->prepare("SELECT COUNT(*) AS total FROM transaksi
 $stmtKembaliHariIni->execute();
 $pengembalianHariIni = $stmtKembaliHariIni->fetch()['total'];
 
-$bukuDipinjam = $koneksi->query("SELECT COUNT(*) AS total FROM transaksi WHERE status = 'dipinjam'")->fetch()['total'];
+$bukuDipinjam = $koneksi->query("SELECT COUNT(*) AS total FROM transaksi WHERE status IN ('dipinjam', 'menunggu_konfirmasi')")->fetch()['total'];
 
 // Definisi "terlambat" HARUS sama dengan petugas/buku_terlambat.php:
 // status 'dipinjam' atau 'menunggu_konfirmasi', dengan tanggal acuan =

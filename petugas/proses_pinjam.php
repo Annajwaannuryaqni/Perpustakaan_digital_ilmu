@@ -86,7 +86,7 @@ try {
 
     // Kunci baris buku ini agar tidak ada request lain yang membaca stok basi
     // saat proses ini berjalan (mencegah race condition / peminjaman ganda).
-    $cekBuku = $koneksi->prepare("SELECT id_buku, stok FROM buku WHERE id_buku = ? FOR UPDATE");
+    $cekBuku = $koneksi->prepare("SELECT id_buku, stok FROM buku WHERE id_buku = ? AND deleted_at IS NULL FOR UPDATE");
     $cekBuku->execute([$id_buku]);
     $buku = $cekBuku->fetch();
 
