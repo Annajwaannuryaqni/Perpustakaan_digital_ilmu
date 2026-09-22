@@ -68,8 +68,12 @@ $activeMenu = 'denda';
 
     <?php if ($pesan === 'denda_lunas'): ?>
       <p class="alert alert-sukses">Denda berhasil ditandai lunas setelah bukti pembayaran diverifikasi.</p>
+    <?php elseif ($pesan === 'bukti_ditolak'): ?>
+      <p class="alert" style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;">Bukti pembayaran QRIS ditolak. Siswa dapat melihat alasan penolakan dan mengunggah bukti baru.</p>
     <?php elseif ($pesan === 'bukti_belum_ada'): ?>
       <p class="alert" style="background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;">Bukti pembayaran belum diunggah siswa, jadi denda belum dapat ditandai lunas.</p>
+    <?php elseif ($pesan === 'bukti_tidak_valid'): ?>
+      <p class="alert" style="background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;">Penolakan bukti tidak dapat diproses. Pastikan bukti QRIS masih menunggu verifikasi dan alasan penolakan diisi.</p>
     <?php endif; ?>
 
     <div class="card">
@@ -138,12 +142,25 @@ $activeMenu = 'denda';
                   <input type="hidden" name="id" value="<?= $d['id_transaksi'] ?>">
                   <button type="submit" class="btn">Konfirmasi Cash &amp; Lunas</button>
                 </form>
-                <?php elseif (($d['metode_pembayaran'] ?? '') === 'qris' && !empty($d['file_bukti']) && ($d['status_bukti'] ?? '') !== 'ditolak'): ?>
-                <form method="POST" action="bayar_denda.php" onsubmit="return confirm('Bukti QRIS sudah diperiksa dan sesuai? Tandai denda ini lunas?')" style="margin:0;">
-                  <?= csrfField() ?>
-                  <input type="hidden" name="id" value="<?= $d['id_transaksi'] ?>">
-                  <button type="submit" class="btn">Verifikasi QRIS &amp; Lunas</button>
-                </form>
+                <?php elseif (($d['metode_pembayaran'] ?? '') === 'qris' && !empty($d['file_bukti']) && ($d['status_bukti'] ?? '') === 'menunggu_verifikasi'): ?>
+                <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start;min-width:180px;">
+                  <form method="POST" action="bayar_denda.php" onsubmit="return confirm('Bukti QRIS sudah diperiksa dan sesuai? Tandai denda ini lunas?')" style="margin:0;">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="id" value="<?= $d['id_transaksi'] ?>">
+                    <input type="hidden" name="aksi" value="terima">
+                    <button type="submit" class="btn">Verifikasi QRIS &amp; Lunas</button>
+                  </form>
+                  <form method="POST" action="bayar_denda.php" style="margin:0;width:100%;" onsubmit="return confirm('Tolak bukti QRIS ini? Siswa dapat mengunggah bukti baru setelah penolakan.')">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="id" value="<?= $d['id_transaksi'] ?>">
+                    <input type="hidden" name="aksi" value="tolak">
+                    <input type="text" name="catatan" required maxlength="255" placeholder="Alasan penolakan" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);border-radius:10px;">
+                    <button type="submit" class="btn btn-outline" style="margin-top:6px;">Tolak Bukti</button>
+                  </form>
+                </div>
+                <?php elseif (($d['status_bukti'] ?? '') === 'ditolak' && !empty($d['catatan_bukti'])): ?>
+                  <span style="color:#b91c1c;">Ditolak</span><br>
+                  <small style="color:var(--muted);">Alasan: <?= htmlspecialchars($d['catatan_bukti']) ?></small>
                 <?php else: ?>
                   <span style="color:var(--muted);">Menunggu pembayaran/bukti</span>
                 <?php endif; ?>

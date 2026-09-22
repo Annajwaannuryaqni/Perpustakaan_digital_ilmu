@@ -9,10 +9,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 requireCsrf();
 
-$id_petugas = $_SESSION['petugas_id'];
+$id_petugas = $_SESSION['petugas_id'] ?? 0;
 $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
+$aksi = $_POST['aksi'] ?? 'terima';
+$catatan = trim((string)($_POST['catatan'] ?? ''));
 
-if (!$id) {
+if (!$id || !in_array($aksi, ['terima', 'tolak'], true)) {
     header('Location: denda.php');
     exit;
 }
@@ -20,7 +22,13 @@ if (!$id) {
 try {
     $koneksi->beginTransaction();
 
-    $cek = $koneksi->prepare("\n        SELECT t.id_transaksi, t.denda, t.status_denda,\n               p.id_pembayaran, p.metode_pembayaran, p.file_bukti, p.status AS status_bukti\n        FROM transaksi t\n        LEFT JOIN pembayaran_denda p ON p.id_transaksi = t.id_transaksi\n        WHERE t.id_transaksi = ? AND t.denda > 0 AND t.status_denda = 'Belum Lunas'\n        FOR UPDATE\n    ");
+    $cek = $koneksi->prepare("SELECT
+            t.id_transaksi, t.denda, t.status_denda,
+            p.id_pembayaran, p.metode_pembayaran, p.file_bukti, p.status AS status_bukti
+        FROM transaksi t
+        LEFT JOIN pembayaran_denda p ON p.id_transaksi = t.id_transaksi
+        WHERE t.id_transaksi = ? AND t.denda > 0 AND t.status_denda = 'Belum Lunas'
+        FOR UPDATE");
     $cek->execute([$id]);
     $data = $cek->fetch();
 
@@ -34,8 +42,33 @@ try {
     $statusBukti = $data['status_bukti'] ?? '';
     $fileBukti = $data['file_bukti'] ?? '';
 
+    if ($aksi === 'tolak') {
+        // Hanya QRIS dengan bukti yang masih menunggu verifikasi yang boleh ditolak.
+        // Denda tetap BELUM LUNAS agar siswa dapat memperbaiki pembayaran.
+        if ($metode !== 'qris' || empty($fileBukti) || $statusBukti !== 'menunggu_verifikasi' || $catatan === '') {
+            $koneksi->rollBack();
+            header('Location: denda.php?pesan=bukti_tidak_valid');
+            exit;
+        }
+
+        $catatan = substr($catatan, 0, 255);
+        $stmt = $koneksi->prepare("UPDATE pembayaran_denda
+            SET status = 'ditolak',
+                diverifikasi_at = NOW(),
+                diverifikasi_oleh = ?,
+                catatan = ?
+            WHERE id_transaksi = ?
+              AND metode_pembayaran = 'qris'
+              AND status = 'menunggu_verifikasi'");
+        $stmt->execute([$id_petugas, $catatan, $id]);
+
+        $koneksi->commit();
+        header('Location: denda.php?pesan=bukti_ditolak');
+        exit;
+    }
+
     // Cash: petugas mengonfirmasi uang sudah diterima.
-    // QRIS: petugas wajib melihat bukti terlebih dahulu.
+    // QRIS: petugas hanya bisa melunasi setelah bukti tersedia dan masih menunggu verifikasi.
     if ($metode === 'cash') {
         if ($statusBukti !== 'menunggu_verifikasi') {
             $koneksi->rollBack();
@@ -54,10 +87,14 @@ try {
         exit;
     }
 
-    $stmt = $koneksi->prepare("\n        UPDATE transaksi\n        SET status_denda = 'Lunas', tanggal_bayar_denda = CURDATE()\n        WHERE id_transaksi = ? AND denda > 0 AND status_denda = 'Belum Lunas'\n    ");
+    $stmt = $koneksi->prepare("UPDATE transaksi
+        SET status_denda = 'Lunas', tanggal_bayar_denda = CURDATE()
+        WHERE id_transaksi = ? AND denda > 0 AND status_denda = 'Belum Lunas'");
     $stmt->execute([$id]);
 
-    $stmtBukti = $koneksi->prepare("\n        UPDATE pembayaran_denda\n        SET status = 'diterima', diverifikasi_at = NOW(), diverifikasi_oleh = ?, catatan = NULL\n        WHERE id_transaksi = ?\n    ");
+    $stmtBukti = $koneksi->prepare("UPDATE pembayaran_denda
+        SET status = 'diterima', diverifikasi_at = NOW(), diverifikasi_oleh = ?, catatan = NULL
+        WHERE id_transaksi = ?");
     $stmtBukti->execute([$id_petugas, $id]);
 
     $koneksi->commit();

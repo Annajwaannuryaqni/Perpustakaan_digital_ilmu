@@ -8,10 +8,14 @@ date_default_timezone_set('Asia/Jakarta');
 
 $pesan = $_GET['pesan'] ?? '';
 
-// Halaman ini khusus untuk PETUGAS mengonfirmasi pengembalian
-// yang sebelumnya sudah diajukan oleh siswa.
-// Status yang boleh muncul di sini hanya: menunggu_konfirmasi.
-$daftarPengembalian = $koneksi->query("
+$today = date('Y-m-d');
+
+// Semua petugas aktif dapat membantu memproses pengembalian buku siswa.
+// Siswa boleh lebih dulu mengajukan pengembalian (menunggu_konfirmasi),
+// atau petugas dapat langsung memproses transaksi yang masih dipinjam saat
+// siswa datang membawa buku. Tidak ada role baru; seluruh petugas memakai
+// hak akses yang sama.
+$stmtPengembalian = $koneksi->prepare("
     SELECT
         t.id_transaksi,
         t.id_buku,
@@ -27,21 +31,36 @@ $daftarPengembalian = $koneksi->query("
         b.pengarang,
         b.deleted_at,
         DATEDIFF(
-            COALESCE(t.tanggal_pengajuan_kembali, CURDATE()),
+            CASE
+                WHEN t.status = 'menunggu_konfirmasi'
+                    THEN COALESCE(t.tanggal_pengajuan_kembali, ?)
+                ELSE ?
+            END,
             t.tanggal_jatuh_tempo
         ) AS hari_terlambat
     FROM transaksi t
     JOIN anggota a ON a.id_anggota = t.id_anggota
     LEFT JOIN buku b ON b.id_buku = t.id_buku
-    WHERE t.status = 'menunggu_konfirmasi'
-    ORDER BY t.tanggal_pengajuan_kembali ASC, t.id_transaksi ASC
-")->fetchAll();
+    WHERE t.status IN ('dipinjam', 'menunggu_konfirmasi')
+    ORDER BY
+        CASE WHEN t.status = 'menunggu_konfirmasi' THEN 0 ELSE 1 END,
+        t.tanggal_jatuh_tempo ASC,
+        t.id_transaksi ASC
+");
+$stmtPengembalian->execute([$today, $today]);
+$daftarPengembalian = $stmtPengembalian->fetchAll();
 
-$totalMenunggu = count($daftarPengembalian);
+$totalMenunggu = 0;
+$totalAktif = 0;
 $totalTerlambat = 0;
 $totalEstimasiDenda = 0;
 
 foreach ($daftarPengembalian as $p) {
+    if ($p['status'] === 'menunggu_konfirmasi') {
+        $totalMenunggu++;
+    } else {
+        $totalAktif++;
+    }
     $hariTerlambat = max(0, (int)$p['hari_terlambat']);
     if ($hariTerlambat > 0) {
         $totalTerlambat++;
@@ -61,7 +80,7 @@ $activeMenu = 'pengembalian';
 <style>
   .return-summary {
     display:grid;
-    grid-template-columns:repeat(3,1fr);
+    grid-template-columns:repeat(4,1fr);
     gap:14px;
     margin-bottom:20px;
   }
@@ -180,6 +199,9 @@ $activeMenu = 'pengembalian';
     font-size:.84rem;
     font-weight:600;
   }
+  .condition-select, .condition-note { width:100%; box-sizing:border-box; border:1px solid #dbe3ef; border-radius:9px; padding:8px 9px; background:#fff; color:#0f172a; font-size:.74rem; }
+  .condition-note { margin-top:6px; min-height:54px; resize:vertical; font-family:inherit; }
+  .condition-help { margin-top:5px; color:var(--muted); font-size:.68rem; line-height:1.45; }
   @media (max-width: 800px) {
     .return-summary { grid-template-columns:1fr; }
   }
@@ -192,22 +214,28 @@ $activeMenu = 'pengembalian';
     <div class="page-head">
       <div>
         <h1>Pengembalian Buku</h1>
-        <p>Konfirmasi pengembalian buku yang sudah diajukan oleh siswa.</p>
+        <p>Semua petugas aktif dapat membantu mengembalikan buku siswa, baik dari pengajuan siswa maupun langsung saat buku dibawa ke perpustakaan.</p>
       </div>
     </div>
 
     <?php if ($pesan === 'sukses'): ?>
       <div class="alert-success">✓ Pengembalian buku berhasil dikonfirmasi.</div>
+    <?php elseif ($pesan === 'kondisi_tidak_valid'): ?>
+      <div class="alert-error" style="margin-bottom:18px;">Kondisi buku wajib dipilih: Baik, Rusak, atau Hilang.</div>
     <?php endif; ?>
 
     <div class="return-summary">
+      <div class="return-summary-card">
+        <strong><?= $totalAktif ?></strong>
+        <span>Masih Dipinjam</span>
+      </div>
       <div class="return-summary-card">
         <strong><?= $totalMenunggu ?></strong>
         <span>Menunggu Konfirmasi</span>
       </div>
       <div class="return-summary-card">
         <strong><?= $totalTerlambat ?></strong>
-        <span>Pengajuan Terlambat</span>
+        <span>Sedang Terlambat</span>
       </div>
       <div class="return-summary-card">
         <strong>Rp<?= number_format($totalEstimasiDenda, 0, ',', '.') ?></strong>
@@ -217,9 +245,9 @@ $activeMenu = 'pengembalian';
 
     <div class="card">
       <div style="margin-bottom:15px;">
-        <h3 style="margin:0 0 5px;">Daftar Pengajuan Pengembalian</h3>
+        <h3 style="margin:0 0 5px;">Daftar Buku yang Dapat Dikembalikan</h3>
         <p style="margin:0; color:var(--muted); font-size:.8rem;">
-          Hanya pengembalian dengan status <strong>Menunggu Konfirmasi</strong> yang ditampilkan.
+          Petugas aktif mana pun dapat memproses buku yang masih <strong>Dipinjam</strong> maupun yang sudah <strong>Menunggu Konfirmasi</strong>.
         </p>
       </div>
 
@@ -235,6 +263,7 @@ $activeMenu = 'pengembalian';
                 <th>Diajukan Kembali</th>
                 <th>Status</th>
                 <th>Denda</th>
+                <th>Kondisi Buku</th>
                 <th>Aksi</th>
               </tr>
             </thead>
@@ -257,7 +286,13 @@ $activeMenu = 'pengembalian';
                   <td><?= htmlspecialchars($p['tanggal_pinjam']) ?></td>
                   <td><?= htmlspecialchars($p['tanggal_jatuh_tempo']) ?></td>
                   <td><?= htmlspecialchars($p['tanggal_pengajuan_kembali'] ?? '-') ?></td>
-                  <td><span class="status-waiting">Menunggu Konfirmasi</span></td>
+                  <td>
+                    <?php if ($p['status'] === 'menunggu_konfirmasi'): ?>
+                      <span class="status-waiting">Menunggu Konfirmasi</span>
+                    <?php else: ?>
+                      <span class="on-time-badge">Masih Dipinjam</span>
+                    <?php endif; ?>
+                  </td>
                   <td>
                     <?php if ($hariTerlambat > 0): ?>
                       <span class="late-badge"><?= $hariTerlambat ?> hari · Rp<?= number_format($estimasiDenda, 0, ',', '.') ?></span>
@@ -267,10 +302,20 @@ $activeMenu = 'pengembalian';
                   </td>
                   <td>
                     <form method="POST" action="proses_kembali.php" class="return-action-form"
-                          onsubmit="return confirm('Konfirmasi pengembalian buku ini?<?= $estimasiDenda > 0 ? ' Estimasi denda: Rp' . number_format($estimasiDenda, 0, ',', '.') . '.' : ' Tidak ada denda.' ?>');">
+                          data-late-fine="<?= (int)$estimasiDenda ?>"
+                          onsubmit="return konfirmasiPengembalian(this);">
                       <?= csrfField() ?>
                       <input type="hidden" name="id_transaksi" value="<?= (int)$p['id_transaksi'] ?>">
-                      <button type="submit" class="btn">Konfirmasi</button>
+                      <select name="kondisi_buku" class="condition-select" required onchange="updateDendaKondisi(this)">
+                        <option value="">Pilih kondisi...</option>
+                        <option value="Baik">Baik</option>
+                        <option value="Rusak">Rusak (+Rp<?= number_format(DENDA_BUKU_RUSAK, 0, ',', '.') ?>)</option>
+                        <option value="Hilang">Hilang (+Rp<?= number_format(DENDA_BUKU_HILANG, 0, ",", ".") ?>)</option>
+                      </select>
+                      <textarea name="catatan_kondisi" class="condition-note" maxlength="255" placeholder="Catatan kondisi (opsional)"></textarea>
+                      <div class="condition-help">Rusak menambah denda Rp<?= number_format(DENDA_BUKU_RUSAK, 0, ',', '.') ?>, Hilang menambah denda Rp<?= number_format(DENDA_BUKU_HILANG, 0, ',', '.') ?>. Buku Rusak/Hilang tidak menambah stok otomatis.</div>
+                      <div class="condition-help estimate-denda">Denda keterlambatan: Rp<?= number_format($estimasiDenda, 0, ',', '.') ?></div>
+                      <button type="submit" class="btn" style="margin-top:7px;"><?= $p['status'] === 'menunggu_konfirmasi' ? 'Konfirmasi' : 'Proses Pengembalian' ?></button>
                     </form>
                   </td>
                 </tr>
@@ -280,12 +325,33 @@ $activeMenu = 'pengembalian';
         </div>
       <?php else: ?>
         <div class="empty-return">
-          <strong>Belum ada pengajuan pengembalian</strong>
-          <span>Pengajuan dari siswa akan muncul di halaman ini setelah siswa mengajukan pengembalian.</span>
+          <strong>Belum ada buku yang dapat dikembalikan</strong>
+          <span>Buku yang masih dipinjam atau menunggu konfirmasi pengembalian akan muncul di halaman ini.</span>
         </div>
       <?php endif; ?>
     </div>
   </div>
   </main>
+
+<script>
+function updateDendaKondisi(select){
+  const form=select.closest('form'); if(!form) return;
+  const late=Number(form.dataset.lateFine||0);
+  const damage=select.value==='Rusak' ? <?= (int)DENDA_BUKU_RUSAK ?> : (select.value==='Hilang' ? <?= (int)DENDA_BUKU_HILANG ?> : 0);
+  const total=late+damage;
+  const el=form.querySelector('.estimate-denda');
+  if(el) el.textContent = total>0 ? 'Estimasi total denda: Rp'+total.toLocaleString('id-ID') : 'Tidak ada denda';
+}
+function konfirmasiPengembalian(form){
+  const kondisi=form.querySelector('[name="kondisi_buku"]').value;
+  if(!kondisi){ alert('Pilih kondisi buku terlebih dahulu.'); return false; }
+  const late=Number(form.dataset.lateFine||0);
+  const damage=kondisi==='Rusak' ? <?= (int)DENDA_BUKU_RUSAK ?> : (kondisi==='Hilang' ? <?= (int)DENDA_BUKU_HILANG ?> : 0);
+  const total=late+damage;
+  const denda=total>0 ? ' Total denda: Rp'+total.toLocaleString('id-ID')+'.' : ' Tidak ada denda.';
+  const stok=kondisi==='Baik' ? ' Stok buku akan kembali tersedia.' : ' Buku '+kondisi.toLowerCase()+' tidak menambah stok otomatis.';
+  return confirm('Konfirmasi pengembalian dengan kondisi '+kondisi+'?'+denda+stok);
+}
+</script>
 </body>
 </html>

@@ -36,12 +36,16 @@ foreach ($bukuDipinjam as $p) {
     }
 }
 
-// Total denda yang MASIH HARUS DIBAYAR. Denda yang sudah Lunas tidak dihitung.
-// Denda dari transaksi yang sudah dikonfirmasi petugas + belum lunas dijumlahkan
-// dengan estimasi denda dari buku yang masih aktif dan sudah terlambat.
+// Denda BELUM LUNAS yang sudah resmi tercatat setelah petugas mengonfirmasi pengembalian.
+// Denda ini adalah kewajiban pembayaran yang benar-benar sudah ditetapkan sistem.
 $stmtDendaTercatat = $koneksi->prepare("SELECT COALESCE(SUM(denda),0) AS total FROM transaksi WHERE id_anggota = ? AND status_denda = 'Belum Lunas'");
 $stmtDendaTercatat->execute([$id_anggota]);
-$dendaTercatat = $stmtDendaTercatat->fetch()['total'];
+$dendaTercatat = (int)$stmtDendaTercatat->fetch()['total'];
+
+// Estimasi denda berjalan hanya bersifat informasi untuk buku yang masih dipinjam.
+// Nilai ini belum menjadi utang resmi dan belum dapat dibayar sebelum pengembalian
+// dikonfirmasi oleh petugas.
+$estimasiDendaBerjalan = (int)$estimasiDenda;
 
 // Jumlah buku yang sudah pernah dikembalikan (menunggu_konfirmasi belum
 // dihitung selesai karena masih menunggu verifikasi fisik oleh petugas)
@@ -186,20 +190,33 @@ function siswaIcon($name, $class = 'ic') {
       <div class="stat-card">
         <div class="stat-icon gold"><?= siswaIcon('coin') ?></div>
         <div>
-          <div class="stat-value">Rp<?= number_format($dendaTercatat + $estimasiDenda, 0, ',', '.') ?></div>
-          <div class="stat-label">Total Denda Belum Lunas<?= $estimasiDenda ? ' (termasuk estimasi berjalan)' : '' ?></div>
+          <div class="stat-value">Rp<?= number_format($dendaTercatat, 0, ',', '.') ?></div>
+          <div class="stat-label">Denda Belum Lunas</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:<?= $estimasiDendaBerjalan ? 'rgba(217,119,6,.1)' : 'rgba(100,116,139,.1)' ?>; color:<?= $estimasiDendaBerjalan ? '#b45309' : 'var(--muted)' ?>;"><?= siswaIcon('clock') ?></div>
+        <div>
+          <div class="stat-value">Rp<?= number_format($estimasiDendaBerjalan, 0, ',', '.') ?></div>
+          <div class="stat-label">Estimasi Denda Berjalan</div>
         </div>
       </div>
     </div>
 
-    <?php if ((float)$dendaTercatat > 0): ?>
+    <?php if ($dendaTercatat > 0 || $estimasiDendaBerjalan > 0): ?>
     <div class="card" style="margin-top:18px; border:1px solid rgba(217,119,6,.2); background:rgba(217,119,6,.035);">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
         <div>
-          <h3 style="margin:0 0 5px; color:var(--navy);">Pembayaran Denda</h3>
-          <p style="margin:0; color:var(--muted); font-size:.82rem;">Ada denda yang sudah tercatat dan belum lunas. Pilih pembayaran Cash atau QRIS sesuai kebutuhan.</p>
+          <h3 style="margin:0 0 5px; color:var(--navy);">Informasi Denda</h3>
+          <?php if ($dendaTercatat > 0): ?>
+            <p style="margin:0; color:var(--muted); font-size:.82rem;">Denda yang sudah tercatat dan belum lunas: <strong>Rp<?= number_format($dendaTercatat, 0, ',', '.') ?></strong>. Pilih pembayaran Cash atau QRIS sesuai kebutuhan.</p>
+          <?php else: ?>
+            <p style="margin:0; color:var(--muted); font-size:.82rem;">Ada estimasi denda berjalan sebesar <strong>Rp<?= number_format($estimasiDendaBerjalan, 0, ',', '.') ?></strong>. Nilai ini belum menjadi denda resmi sampai pengembalian dikonfirmasi petugas.</p>
+          <?php endif; ?>
         </div>
-        <a href="pembayaran_denda.php" class="btn">Bayar / Pilih Metode</a>
+        <?php if ($dendaTercatat > 0): ?>
+          <a href="pembayaran_denda.php" class="btn">Bayar / Pilih Metode</a>
+        <?php endif; ?>
       </div>
     </div>
     <?php endif; ?>

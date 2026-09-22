@@ -29,6 +29,7 @@ function petugasSideLink($href, $key, $label, $svgInner, $active) {
     <?php petugasSideLink('riwayat_peminjaman.php', 'riwayat', 'Riwayat Peminjaman', '<path d="M4 5.5h16v15H4z"/><path d="M8 9h8M8 13h8M8 17h5"/>', $activeMenu); ?>
     <?php petugasSideLink('buku_terlambat.php', 'terlambat', 'Buku Terlambat', '<circle cx="12" cy="12" r="8.5"/><polyline points="12 7.5 12 12 15.5 14"/>', $activeMenu); ?>
     <?php petugasSideLink('denda.php', 'denda', 'Denda', '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', $activeMenu); ?>
+    <?php petugasSideLink('laporan_buku_hilang.php', 'laporan_hilang', 'Laporan Buku Hilang', '<path d="M5 4.5h10.5a2.5 2.5 0 0 1 2.5 2.5v12.5H7.5A2.5 2.5 0 0 1 5 17V4.5Z"/><path d="M8 9h7M8 12.5h7M8 16h5"/>', $activeMenu); ?>
 
     <div class="admin-side-label" style="margin-top:14px;">DATA</div>
     <?php petugasSideLink('data_buku.php', 'data_buku', 'Data Buku', '<path d="M4 5.5c2.2-1 5-1 7 .3v13.7c-2-1.3-4.8-1.3-7-.3V5.5Z"/><path d="M20 5.5c-2.2-1-5-1-7 .3v13.7c2-1.3 4.8-1.3 7-.3V5.5Z"/>', $activeMenu); ?>
