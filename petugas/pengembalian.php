@@ -2,127 +2,190 @@
 require_once '../includes/auth.php';
 requirePetugas();
 require_once '../config/database.php';
+require_once '../config/constants.php';
 
-// Aturan operasional peminjaman Petugas:
-// Senin-Kamis 07:30-15:30 WIB
-// Jumat       07:30-14:00 WIB
-// Sabtu-Minggu ditutup.
 date_default_timezone_set('Asia/Jakarta');
-
-$hari = (int) date('N');
-$jamMenit = ((int) date('H') * 60) + (int) date('i');
-$jamBuka = 7 * 60 + 30;
-$jamTutup = null;
-
-if ($hari >= 1 && $hari <= 4) {
-    $jamTutup = 15 * 60 + 30;
-} elseif ($hari === 5) {
-    $jamTutup = 14 * 60;
-}
-
-$jamOperasional = $jamTutup !== null
-    && $jamMenit >= $jamBuka
-    && $jamMenit < $jamTutup;
 
 $pesan = $_GET['pesan'] ?? '';
 
-$id_anggota = filter_input(INPUT_GET, 'anggota', FILTER_VALIDATE_INT);
-$id_buku    = filter_input(INPUT_GET, 'buku', FILTER_VALIDATE_INT);
-$q          = trim($_GET['q'] ?? '');
+// Halaman ini khusus untuk PETUGAS mengonfirmasi pengembalian
+// yang sebelumnya sudah diajukan oleh siswa.
+// Status yang boleh muncul di sini hanya: menunggu_konfirmasi.
+$daftarPengembalian = $koneksi->query("
+    SELECT
+        t.id_transaksi,
+        t.id_buku,
+        t.id_anggota,
+        t.tanggal_pinjam,
+        t.tanggal_jatuh_tempo,
+        t.tanggal_pengajuan_kembali,
+        t.status,
+        a.nama_lengkap AS nama_anggota,
+        a.nis,
+        a.kelas,
+        b.judul,
+        b.pengarang,
+        b.deleted_at,
+        DATEDIFF(
+            COALESCE(t.tanggal_pengajuan_kembali, CURDATE()),
+            t.tanggal_jatuh_tempo
+        ) AS hari_terlambat
+    FROM transaksi t
+    JOIN anggota a ON a.id_anggota = t.id_anggota
+    LEFT JOIN buku b ON b.id_buku = t.id_buku
+    WHERE t.status = 'menunggu_konfirmasi'
+    ORDER BY t.tanggal_pengajuan_kembali ASC, t.id_transaksi ASC
+")->fetchAll();
 
-$anggotaTerpilih = null;
-$bukuTerpilih = null;
+$totalMenunggu = count($daftarPengembalian);
+$totalTerlambat = 0;
+$totalEstimasiDenda = 0;
 
-if ($id_anggota) {
-    $stmt = $koneksi->prepare("SELECT * FROM anggota WHERE id_anggota = ?");
-    $stmt->execute([$id_anggota]);
-    $anggotaTerpilih = $stmt->fetch();
-    if (!$anggotaTerpilih) {
-        header('Location: peminjaman.php');
-        exit;
+foreach ($daftarPengembalian as $p) {
+    $hariTerlambat = max(0, (int)$p['hari_terlambat']);
+    if ($hariTerlambat > 0) {
+        $totalTerlambat++;
+        $totalEstimasiDenda += min(
+            $hariTerlambat * TARIF_DENDA_PER_HARI,
+            TARIF_DENDA_MAKSIMUM
+        );
     }
 }
 
-if ($id_anggota && $id_buku) {
-    $stmt = $koneksi->prepare("
-        SELECT b.*, k.nama_kategori
-        FROM buku b LEFT JOIN kategori k ON k.id_kategori = b.id_kategori
-        WHERE b.id_buku = ? AND b.deleted_at IS NULL
-    ");
-    $stmt->execute([$id_buku]);
-    $bukuTerpilih = $stmt->fetch();
-    if (!$bukuTerpilih) {
-        header('Location: peminjaman.php?anggota=' . $id_anggota);
-        exit;
-    }
-}
-
-// ---- Tahap 1: cari anggota ----
-$daftarAnggota = [];
-if (!$id_anggota) {
-    if ($q !== '') {
-        $stmt = $koneksi->prepare("
-            SELECT * FROM anggota
-            WHERE status = 'aktif' AND (nama_lengkap LIKE :kw OR nis LIKE :kw OR kelas LIKE :kw OR username LIKE :kw)
-            ORDER BY nama_lengkap ASC LIMIT 30
-        ");
-        $stmt->execute(['kw' => '%' . $q . '%']);
-        $daftarAnggota = $stmt->fetchAll();
-    } else {
-        $daftarAnggota = $koneksi->query("SELECT * FROM anggota WHERE status = 'aktif' ORDER BY nama_lengkap ASC LIMIT 30")->fetchAll();
-    }
-}
-
-// ---- Tahap 2: cari buku (tersedia saja) ----
-$daftarBuku = [];
-if ($id_anggota && !$id_buku) {
-    if ($q !== '') {
-        $stmt = $koneksi->prepare("
-            SELECT b.*, k.nama_kategori
-            FROM buku b LEFT JOIN kategori k ON k.id_kategori = b.id_kategori
-            WHERE b.deleted_at IS NULL AND b.stok > 0 AND (b.judul LIKE :kw OR b.pengarang LIKE :kw OR b.kode_buku LIKE :kw)
-            ORDER BY b.judul ASC LIMIT 30
-        ");
-        $stmt->execute(['kw' => '%' . $q . '%']);
-        $daftarBuku = $stmt->fetchAll();
-    } else {
-        $daftarBuku = $koneksi->query("
-            SELECT b.*, k.nama_kategori FROM buku b
-            LEFT JOIN kategori k ON k.id_kategori = b.id_kategori
-            WHERE b.deleted_at IS NULL AND b.stok > 0 ORDER BY b.judul ASC LIMIT 30
-        ")->fetchAll();
-    }
-}
-
-$tanggalPinjamPreview = date('Y-m-d');
-$jatuhTempoPreview = date('Y-m-d', strtotime('+7 days'));
-
-$activeMenu = 'peminjaman';
+$activeMenu = 'pengembalian';
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Peminjaman - Panel Petugas</title>
+<title>Pengembalian Buku - Panel Petugas</title>
 <link rel="stylesheet" href="../assets/style.css">
 <style>
-  .pick-list { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
-  .pick-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 14px;
-    padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px;
-    text-decoration: none; color: inherit; transition: border-color .15s ease, box-shadow .15s ease;
+  .return-summary {
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+    margin-bottom:20px;
   }
-  .pick-row:hover { border-color: var(--royal-400); box-shadow: var(--shadow-hover); }
-  .pick-row strong { display: block; color: var(--navy); font-size: .95rem; }
-  .pick-row small { display: block; color: var(--muted); font-size: .8rem; margin-top: 2px; }
-  .selected-card {
-    display: flex; align-items: center; justify-content: space-between; gap: 14px;
-    background: rgba(37,99,235,.06); border: 1px solid rgba(37,99,235,.18);
-    border-radius: 14px; padding: 16px 18px; margin-bottom: 20px;
+  .return-summary-card {
+    padding:16px 18px;
+    border:1px solid var(--border);
+    border-radius:14px;
+    background:#fff;
+    box-shadow:var(--shadow);
   }
-  .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; font-size: .88rem; margin: 16px 0; }
-  .kv-grid div span { display: block; color: var(--muted); font-size: .72rem; margin-bottom: 2px; }
+  .return-summary-card strong {
+    display:block;
+    color:var(--navy);
+    font-size:1.35rem;
+    line-height:1.2;
+  }
+  .return-summary-card span {
+    display:block;
+    margin-top:5px;
+    color:var(--muted);
+    font-size:.76rem;
+  }
+  .return-table-wrap {
+    overflow-x:auto;
+    border:1px solid var(--border);
+    border-radius:14px;
+    background:#fff;
+  }
+  .return-table-wrap table {
+    width:100%;
+    min-width:900px;
+    border-collapse:collapse;
+  }
+  .return-table-wrap th {
+    padding:13px 14px;
+    background:#f8fafc;
+    color:var(--muted);
+    font-size:.72rem;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+    text-align:left;
+    border-bottom:1px solid var(--border);
+  }
+  .return-table-wrap td {
+    padding:14px;
+    color:var(--text);
+    font-size:.82rem;
+    border-bottom:1px solid #eef2f7;
+    vertical-align:middle;
+  }
+  .return-table-wrap tr:last-child td { border-bottom:0; }
+  .member-name,
+  .book-name {
+    display:block;
+    color:var(--navy);
+    font-weight:700;
+  }
+  .member-meta,
+  .book-meta {
+    display:block;
+    margin-top:3px;
+    color:var(--muted);
+    font-size:.72rem;
+  }
+  .status-waiting {
+    display:inline-flex;
+    align-items:center;
+    padding:6px 9px;
+    border-radius:999px;
+    background:#fff7ed;
+    color:#c2410c;
+    font-size:.7rem;
+    font-weight:700;
+    white-space:nowrap;
+  }
+  .late-badge {
+    display:inline-flex;
+    padding:6px 9px;
+    border-radius:999px;
+    background:#fef2f2;
+    color:#b91c1c;
+    font-size:.7rem;
+    font-weight:700;
+    white-space:nowrap;
+  }
+  .on-time-badge {
+    display:inline-flex;
+    padding:6px 9px;
+    border-radius:999px;
+    background:#ecfdf5;
+    color:#047857;
+    font-size:.7rem;
+    font-weight:700;
+    white-space:nowrap;
+  }
+  .return-action-form { margin:0; }
+  .return-action-form .btn { white-space:nowrap; }
+  .empty-return {
+    padding:50px 20px;
+    text-align:center;
+    color:var(--muted);
+  }
+  .empty-return strong {
+    display:block;
+    color:var(--navy);
+    font-size:.95rem;
+    margin-bottom:5px;
+  }
+  .alert-success {
+    padding:12px 15px;
+    margin-bottom:18px;
+    border-radius:10px;
+    background:#ecfdf5;
+    color:#047857;
+    border:1px solid #a7f3d0;
+    font-size:.84rem;
+    font-weight:600;
+  }
+  @media (max-width: 800px) {
+    .return-summary { grid-template-columns:1fr; }
+  }
 </style>
 </head>
 <body class="admin-page">
@@ -131,130 +194,100 @@ $activeMenu = 'peminjaman';
   <div class="container">
     <div class="page-head">
       <div>
-        <h1>Peminjaman Buku</h1>
-        <p>Cari anggota, lalu pilih buku yang akan dipinjam.</p>
+        <h1>Pengembalian Buku</h1>
+        <p>Konfirmasi pengembalian buku yang sudah diajukan oleh siswa.</p>
       </div>
     </div>
 
-    <?php if ($pesan === 'di_luar_jam'): ?>
-      <p class="alert alert-gagal">Peminjaman Petugas hanya dapat dilakukan pada jam operasional: Senin-Kamis 07:30-15:30 WIB, Jumat 07:30-14:00 WIB. Sabtu dan Minggu tutup.</p>
-    <?php elseif (!$jamOperasional): ?>
-      <p class="alert alert-gagal">Peminjaman sedang di luar jam operasional: Senin-Kamis 07:30-15:30 WIB, Jumat 07:30-14:00 WIB. Sabtu dan Minggu tutup.</p>
-    <?php elseif ($pesan === 'gagal_stok'): ?>
-      <p class="alert alert-gagal">Peminjaman gagal, stok buku sudah habis. Silakan pilih buku lain.</p>
-    <?php elseif ($pesan === 'ada_denda'): ?>
-      <p class="alert alert-gagal">Anggota ini masih punya denda yang belum lunas. Selesaikan pembayaran dendanya dulu (menu Denda) sebelum meminjamkan buku baru.</p>
-    <?php elseif ($pesan === 'ada_terlambat'): ?>
-      <p class="alert alert-gagal">Anggota ini masih memegang buku yang sudah lewat jatuh tempo. Minta anggota mengembalikannya dulu (lihat menu Buku Terlambat) sebelum meminjamkan buku baru.</p>
-    <?php elseif ($pesan === 'gagal_duplikat'): ?>
-      <p class="alert alert-gagal">Anggota ini sudah sedang meminjam buku yang sama dan belum mengembalikannya.</p>
-    <?php elseif ($pesan === 'gagal'): ?>
-      <p class="alert alert-gagal">Peminjaman gagal diproses. Silakan coba lagi.</p>
+    <?php if ($pesan === 'sukses'): ?>
+      <div class="alert-success">✓ Pengembalian buku berhasil dikonfirmasi.</div>
     <?php endif; ?>
 
-    <?php if (!$id_anggota): ?>
-      <!-- ===== TAHAP 1: PILIH ANGGOTA ===== -->
-      <div class="card">
-        <h3 style="margin-top:0;">1. Cari Anggota</h3>
-        <form method="GET" action="peminjaman.php" class="search-form">
-          <input type="text" name="q" placeholder="Cari NIS, nama, kelas, atau username..." value="<?= htmlspecialchars($q) ?>">
-          <button type="submit" class="btn btn-outline">Cari</button>
-          <?php if ($q !== ''): ?><a href="peminjaman.php" class="btn-link">Reset</a><?php endif; ?>
-        </form>
+    <div class="return-summary">
+      <div class="return-summary-card">
+        <strong><?= $totalMenunggu ?></strong>
+        <span>Menunggu Konfirmasi</span>
+      </div>
+      <div class="return-summary-card">
+        <strong><?= $totalTerlambat ?></strong>
+        <span>Pengajuan Terlambat</span>
+      </div>
+      <div class="return-summary-card">
+        <strong>Rp<?= number_format($totalEstimasiDenda, 0, ',', '.') ?></strong>
+        <span>Estimasi Total Denda</span>
+      </div>
+    </div>
 
-        <div class="pick-list">
-          <?php foreach ($daftarAnggota as $a): ?>
-            <a href="peminjaman.php?anggota=<?= $a['id_anggota'] ?>" class="pick-row">
-              <div>
-                <strong><?= htmlspecialchars($a['nama_lengkap']) ?></strong>
-                <small>NIS <?= htmlspecialchars($a['nis']) ?> &middot; Kelas <?= htmlspecialchars($a['kelas']) ?></small>
-              </div>
-              <span class="btn btn-outline" style="pointer-events:none;">Pilih</span>
-            </a>
-          <?php endforeach; ?>
-          <?php if (!$daftarAnggota): ?>
-            <p style="color:var(--muted); text-align:center; padding:20px 0;">Tidak ada anggota aktif yang cocok.</p>
-          <?php endif; ?>
-        </div>
+    <div class="card">
+      <div style="margin-bottom:15px;">
+        <h3 style="margin:0 0 5px;">Daftar Pengajuan Pengembalian</h3>
+        <p style="margin:0; color:var(--muted); font-size:.8rem;">
+          Hanya pengembalian dengan status <strong>Menunggu Konfirmasi</strong> yang ditampilkan.
+        </p>
       </div>
 
-    <?php elseif (!$id_buku): ?>
-      <!-- ===== TAHAP 2: PILIH BUKU ===== -->
-      <div class="selected-card">
-        <div>
-          <strong style="display:block; color:var(--navy);"><?= htmlspecialchars($anggotaTerpilih['nama_lengkap']) ?></strong>
-          <small style="color:var(--muted);">NIS <?= htmlspecialchars($anggotaTerpilih['nis']) ?> &middot; Kelas <?= htmlspecialchars($anggotaTerpilih['kelas']) ?></small>
+      <?php if ($daftarPengembalian): ?>
+        <div class="return-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Anggota</th>
+                <th>Buku</th>
+                <th>Tgl Pinjam</th>
+                <th>Jatuh Tempo</th>
+                <th>Diajukan Kembali</th>
+                <th>Status</th>
+                <th>Denda</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($daftarPengembalian as $p):
+                $hariTerlambat = max(0, (int)$p['hari_terlambat']);
+                $estimasiDenda = $hariTerlambat > 0
+                    ? min($hariTerlambat * TARIF_DENDA_PER_HARI, TARIF_DENDA_MAKSIMUM)
+                    : 0;
+              ?>
+                <tr>
+                  <td>
+                    <span class="member-name"><?= htmlspecialchars($p['nama_anggota']) ?></span>
+                    <span class="member-meta">NIS <?= htmlspecialchars($p['nis']) ?> · Kelas <?= htmlspecialchars($p['kelas']) ?></span>
+                  </td>
+                  <td>
+                    <span class="book-name"><?= htmlspecialchars($p['judul'] ?? 'Buku tidak ditemukan') ?></span>
+                    <span class="book-meta"><?= htmlspecialchars($p['pengarang'] ?? '-') ?><?php if (!empty($p['deleted_at'])): ?> · Diarsipkan<?php endif; ?></span>
+                  </td>
+                  <td><?= htmlspecialchars($p['tanggal_pinjam']) ?></td>
+                  <td><?= htmlspecialchars($p['tanggal_jatuh_tempo']) ?></td>
+                  <td><?= htmlspecialchars($p['tanggal_pengajuan_kembali'] ?? '-') ?></td>
+                  <td><span class="status-waiting">Menunggu Konfirmasi</span></td>
+                  <td>
+                    <?php if ($hariTerlambat > 0): ?>
+                      <span class="late-badge"><?= $hariTerlambat ?> hari · Rp<?= number_format($estimasiDenda, 0, ',', '.') ?></span>
+                    <?php else: ?>
+                      <span class="on-time-badge">Tidak ada denda</span>
+                    <?php endif; ?>
+                  </td>
+                  <td>
+                    <form method="POST" action="proses_kembali.php" class="return-action-form"
+                          onsubmit="return confirm('Konfirmasi pengembalian buku ini?<?= $estimasiDenda > 0 ? ' Estimasi denda: Rp' . number_format($estimasiDenda, 0, ',', '.') . '.' : ' Tidak ada denda.' ?>');">
+                      <?= csrfField() ?>
+                      <input type="hidden" name="id_transaksi" value="<?= (int)$p['id_transaksi'] ?>">
+                      <button type="submit" class="btn">Konfirmasi</button>
+                    </form>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
         </div>
-        <a href="peminjaman.php" class="btn-link">Ganti Anggota</a>
-      </div>
-
-      <div class="card">
-        <h3 style="margin-top:0;">2. Cari Buku Tersedia</h3>
-        <form method="GET" action="peminjaman.php" class="search-form">
-          <input type="hidden" name="anggota" value="<?= $id_anggota ?>">
-          <input type="text" name="q" placeholder="Cari judul, pengarang, atau kode buku..." value="<?= htmlspecialchars($q) ?>">
-          <button type="submit" class="btn btn-outline">Cari</button>
-          <?php if ($q !== ''): ?><a href="peminjaman.php?anggota=<?= $id_anggota ?>" class="btn-link">Reset</a><?php endif; ?>
-        </form>
-
-        <div class="pick-list">
-          <?php foreach ($daftarBuku as $b): ?>
-            <a href="peminjaman.php?anggota=<?= $id_anggota ?>&buku=<?= $b['id_buku'] ?>" class="pick-row">
-              <div>
-                <strong><?= htmlspecialchars($b['judul']) ?></strong>
-                <small>oleh <?= htmlspecialchars($b['pengarang']) ?> &middot; <?= htmlspecialchars($b['nama_kategori'] ?? 'Lainnya') ?> &middot; Stok <?= (int)$b['stok'] ?></small>
-              </div>
-              <span class="btn" style="pointer-events:none;">Pilih</span>
-            </a>
-          <?php endforeach; ?>
-          <?php if (!$daftarBuku): ?>
-            <p style="color:var(--muted); text-align:center; padding:20px 0;">Tidak ada buku tersedia yang cocok.</p>
-          <?php endif; ?>
+      <?php else: ?>
+        <div class="empty-return">
+          <strong>Belum ada pengajuan pengembalian</strong>
+          <span>Pengajuan dari siswa akan muncul di halaman ini setelah siswa mengajukan pengembalian.</span>
         </div>
-      </div>
-
-    <?php else: ?>
-      <!-- ===== TAHAP 3: KONFIRMASI ===== -->
-      <div class="card" style="max-width:640px; margin:0 auto;">
-        <h3 style="margin-top:0;">Konfirmasi Peminjaman</h3>
-
-        <h4 style="font-size:.78rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:18px 0 8px;">Data Anggota</h4>
-        <div class="kv-grid">
-          <div><span>Nama</span><?= htmlspecialchars($anggotaTerpilih['nama_lengkap']) ?></div>
-          <div><span>NIS</span><?= htmlspecialchars($anggotaTerpilih['nis']) ?></div>
-          <div><span>Kelas</span><?= htmlspecialchars($anggotaTerpilih['kelas']) ?></div>
-        </div>
-
-        <h4 style="font-size:.78rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:18px 0 8px;">Data Buku</h4>
-        <div class="kv-grid">
-          <div><span>Judul</span><?= htmlspecialchars($bukuTerpilih['judul']) ?></div>
-          <div><span>Pengarang</span><?= htmlspecialchars($bukuTerpilih['pengarang']) ?></div>
-          <div><span>Genre</span><?= htmlspecialchars($bukuTerpilih['nama_kategori'] ?? '-') ?></div>
-          <div><span>Stok Tersedia</span><?= (int)$bukuTerpilih['stok'] ?></div>
-        </div>
-
-        <h4 style="font-size:.78rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:18px 0 8px;">Detail Peminjaman</h4>
-        <div class="kv-grid">
-          <div><span>Tanggal Pinjam</span><?= $tanggalPinjamPreview ?></div>
-          <div><span>Jatuh Tempo</span><?= $jatuhTempoPreview ?></div>
-        </div>
-
-        <?php if ((int)$bukuTerpilih['stok'] < 1): ?>
-          <p class="alert alert-gagal">Stok buku ini baru saja habis. Silakan pilih buku lain.</p>
-          <a href="peminjaman.php?anggota=<?= $id_anggota ?>" class="btn btn-outline">Pilih Buku Lain</a>
-        <?php else: ?>
-          <div style="display:flex; gap:12px; margin-top:22px;">
-            <a href="peminjaman.php?anggota=<?= $id_anggota ?>" class="btn btn-outline" style="flex:1; text-align:center;">Batalkan</a>
-            <form method="POST" action="proses_pinjam.php" style="flex:1;">
-              <?= csrfField() ?>
-              <input type="hidden" name="id_anggota" value="<?= $id_anggota ?>">
-              <input type="hidden" name="id_buku" value="<?= $id_buku ?>">
-              <button type="submit" class="btn" style="width:100%;" <?= !$jamOperasional ? 'disabled' : '' ?>><?= $jamOperasional ? 'Konfirmasi Peminjaman' : 'Di Luar Jam Operasional' ?></button>
-            </form>
-          </div>
-        <?php endif; ?>
-      </div>
-    <?php endif; ?>
+      <?php endif; ?>
+    </div>
   </div>
   </main>
 </body>
